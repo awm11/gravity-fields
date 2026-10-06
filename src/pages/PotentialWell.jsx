@@ -33,6 +33,9 @@ const MARBLE = 0.27;
 const DEFAULT_VIEW = { theta: 0.5, phi: 1.0, radius: 27, target: new THREE.Vector3(0.6, -3.2, 0) };
 
 const EARTH_BODY = { x: 0, z: 0, mu: 1, R: 1 };
+// The default start lies on the −15 MJ kg⁻¹ equipotential (r ≈ 4.17 R), so
+// a launch into orbit runs along a drawn ring.
+const DEFAULT_START = { x: -(V_UNIT_MJ / 15), z: 0 };
 const MOON_BODY = { x: 6.5, z: 0, mu: 0.25, R: 0.6 };
 
 function makeField(bodies) {
@@ -67,13 +70,16 @@ export default function PotentialWell({ page }) {
   const [showRings, setShowRings] = useState(true);
   const [showSlope, setShowSlope] = useState(true);
   const [cutaway, setCutaway] = useState(false);
-  const [start, setStart] = useState({ x: -4, z: 0 });
+  const [start, setStart] = useState(DEFAULT_START);
   const [status, setStatus] = useState('Resting on the sheet. Choose how to set it going.');
-  const [probe, setProbe] = useState({ x: -4, z: 0, speed: 0 });
+  const [probe, setProbe] = useState({ ...DEFAULT_START, speed: 0 });
+  const [run, setRun] = useState('idle'); // idle | running | paused
+  const launchEnergy = useRef(null); // ½v² + V at launch, working units
+  const fig8 = useRef(false); // true while the figure-of-eight start is in use
   const hostRef = useRef(null);
   const stageRef = useRef(null);
   const objects = useRef({});
-  const marble = useRef({ x: -4, z: 0, vx: 0, vz: 0, moving: false });
+  const marble = useRef({ ...DEFAULT_START, vx: 0, vz: 0, moving: false });
   const fieldRef = useRef(makeField([EARTH_BODY]));
   const putRef = useRef(null);
   const [noGL] = useState(() => !webglAvailable());
@@ -215,17 +221,34 @@ export default function PotentialWell({ page }) {
             ended = b === EARTH_BODY ? 'Landed on the planet.' : 'Landed on the moon.';
           }
         }
-        if (Math.hypot(m.x, m.z) > HALF - 0.3) {
-          ended = 'Rolled off the edge of the sheet, still moving. With enough speed it would never come back.';
+        if (!ended && Math.hypot(m.x, m.z) > HALF - 0.3) {
+          // keep its speed: the readouts show it, and it matches ½v² + V
+          const v2 = m.vx * m.vx + m.vz * m.vz;
+          const Vedge = potential(m.x, m.z);
+          const E = 0.5 * v2 + Vedge;
+          // within the integration's tiny error, an escape-speed launch has E = 0
+          const zero = Math.abs(E) < 2e-3 * Math.abs(Vedge);
+          const kms = sig((Math.sqrt(v2) * SPEED_UNIT) / 1000, 3);
+          ended = {
+            text: zero
+              ? `Reached the edge of the sheet at ${kms} km s⁻¹. Its total energy, ½v² + V, is zero: it would keep going for ever, slowing towards zero speed as it heads for infinity.`
+              : E > 0
+                ? `Reached the edge of the sheet at ${kms} km s⁻¹. Its total energy, ½v² + V, is positive, so it would never come back: it has escaped.`
+                : `Reached the edge of the sheet at ${kms} km s⁻¹. Its total energy, ½v² + V, is still negative, so beyond the sheet it would slow, stop and fall back.`,
+            keep: true,
+          };
         }
       }
       pushTrail();
       place();
       if (ended) {
         m.moving = false;
-        m.vx = 0;
-        m.vz = 0;
-        setStatus(ended);
+        if (!ended.keep) {
+          m.vx = 0;
+          m.vz = 0;
+        }
+        setStatus(ended.text ?? ended);
+        setRun('idle');
       }
       const now = performance.now();
       if (ended || now - state.lastReport > 90) {
@@ -375,10 +398,18 @@ export default function PotentialWell({ page }) {
     const m = marble.current;
     let from = start;
     if (bodies.some((b) => Math.hypot(start.x - b.x, start.z - b.z) < b.R + 0.15)) {
-      from = { x: -4, z: 0 };
+      from = { ...DEFAULT_START };
       setStart(from);
     }
     Object.assign(m, { x: from.x, z: from.z, vx: 0, vz: 0, moving: false });
+    launchEnergy.current = null;
+    if (fig8.current) {
+      fig8.current = false;
+      from = { ...DEFAULT_START };
+      Object.assign(m, { x: from.x, z: from.z });
+      setStart(from);
+    }
+    setRun('idle');
     o.clearTrail();
     o.place();
     setProbe({ x: m.x, z: m.z, speed: 0, V: potential(m.x, m.z) });
@@ -417,6 +448,9 @@ export default function PotentialWell({ page }) {
     setStart({ x, z });
     const m = marble.current;
     Object.assign(m, { x, z, vx: 0, vz: 0, moving: false });
+    launchEnergy.current = null;
+    fig8.current = false;
+    setRun('idle');
     const o = objects.current;
     o.clearTrail?.();
     o.place?.();
@@ -430,27 +464,130 @@ export default function PotentialWell({ page }) {
     putMarble((start.x / r0) * r, (start.z / r0) * r);
   };
 
-  /** Launch at k × the circular-orbit speed (for the planet alone). */
-  const launch = (k, message) => {
+  /*
+   * Launch sideways from the starting point.
+   *   'rest'    from rest
+   *   'orbit'   at the circular-orbit speed round whichever body pulls
+   *             hardest there, using the full pull towards that body
+   *             (the moon's included), at right angles to the line to it
+   *   'faster'  1.2 × that speed
+   *   'escape'  exactly escape speed, √(−2V), with V from every body
+   */
+  const launch = (kind, message) => {
     const m = marble.current;
-    const r = Math.hypot(start.x, start.z);
-    const v = k * Math.sqrt(1 / r);
+    // After a figure-of-eight the marble starts from the neutral point, where
+    // there is no pull to launch against: go back to the default start.
+    let st = start;
+    if (fig8.current) {
+      fig8.current = false;
+      st = { ...DEFAULT_START };
+      setStart(st);
+    }
+    const { field, potential: pot } = fieldRef.current;
+    const [gx, gz] = field(st.x, st.z);
+    // the body whose own pull is strongest here is the one to circle
+    const host = bodies.reduce((best, b) => {
+      const pull = b.mu / Math.max(1e-6, (st.x - b.x) ** 2 + (st.z - b.z) ** 2);
+      return pull > best.pull ? { b, pull } : best;
+    }, { b: bodies[0], pull: -1 }).b;
+    const dx = st.x - host.x;
+    const dz = st.z - host.z;
+    const d = Math.hypot(dx, dz);
+    const inward = Math.max(1e-6, -(gx * dx + gz * dz) / d); // pull towards the host
+    let vCirc = Math.sqrt(inward * d);
+    // sideways: at right angles to the line to the host body
+    let dir = [-dz / d, dx / d];
+    let steady = true;
+    if (bodies.length > 1 && (kind === 'orbit' || kind === 'faster')) {
+      // With a second body no orbit is a perfect circle, so try a spread of
+      // speeds and directions and keep the one whose distance from the host
+      // varies least over a lap.
+      const best = steadiestLaunch(field, bodies, st, host, vCirc, dir);
+      steady = best.score < 0.5;
+      if (steady) {
+        vCirc = best.v;
+        dir = best.dir;
+      }
+    }
+    const v = kind === 'rest' ? 0
+      : kind === 'orbit' ? vCirc
+        : kind === 'faster' ? 1.2 * vCirc
+          : Math.sqrt(-2 * pot(st.x, st.z));
     Object.assign(m, {
-      x: start.x,
-      z: start.z,
-      // at right angles to the line to the planet
-      vx: (-start.z / r) * v,
-      vz: (start.x / r) * v,
+      x: st.x,
+      z: st.z,
+      vx: dir[0] * v,
+      vz: dir[1] * v,
       moving: true,
     });
+    launchEnergy.current = 0.5 * v * v + pot(st.x, st.z);
     objects.current.clearTrail?.();
-    setStatus(withMoon && k > 0 ? `${message} The moon’s pull disturbs it.` : message);
+    setRun('running');
+    const round = host === MOON_BODY && (kind === 'orbit' || kind === 'faster') ? ' It is nearer the moon, so it circles the moon.' : '';
+    if (!steady) {
+      setStatus('Launched sideways, but no steady orbit is possible from here: the other body pulls too hard, so the path soon breaks up.');
+    } else {
+      const msg = withMoon && kind === 'orbit'
+        ? 'Launched at the speed and direction that keep it closest to a circle (found by trying many).'
+        : message;
+      setStatus(withMoon && kind !== 'rest' ? `${msg}${round} The other body’s pull disturbs it, so it wanders across the equipotentials.` : msg);
+    }
+  };
+
+  /*
+   * A figure-of-eight round both bodies. It starts at the neutral point,
+   * where the two pulls cancel, at a speed and angle found by searching
+   * for a path that closes on itself. It loops round the planet one way and
+   * the moon the other. Such paths are very sensitive: it holds its shape
+   * for several laps here, but any small change and it soon breaks up.
+   */
+  const figureEight = () => {
+    const xN = MOON_BODY.x / (1 + Math.sqrt(MOON_BODY.mu)); // the neutral point
+    const v = 0.532;
+    const a = (51.85 * Math.PI) / 180;
+    setStart({ x: xN, z: 0 });
+    fig8.current = true;
+    const m = marble.current;
+    Object.assign(m, { x: xN, z: 0, vx: -v * Math.cos(a), vz: v * Math.sin(a), moving: true });
+    launchEnergy.current = 0.5 * v * v + fieldRef.current.potential(xN, 0);
+    objects.current.clearTrail?.();
+    objects.current.place?.();
+    setRun('running');
+    setStatus(
+      <>
+        A figure-of-eight round the planet and the moon. Apollo 8, 10 and 11 set off on a
+        figure-of-eight path like this, a free-return trajectory: if the engines failed, it would
+        swing the craft round the Moon and back to the Earth. Apollo 13 used one to get home. (The
+        real Moon moves, so the figure-of-eight shows when the path is drawn turning with it.) Read
+        more:{' '}
+        <a href="https://www.astronomy.com/space-exploration/why-apollo-flew-in-a-figure-8" target="_blank" rel="noreferrer">
+          Why Apollo flew in a figure 8
+        </a>{' '}
+        (Astronomy) and{' '}
+        <a href="https://en.wikipedia.org/wiki/Free-return_trajectory" target="_blank" rel="noreferrer">
+          Free-return trajectory
+        </a>{' '}
+        (Wikipedia).
+      </>,
+    );
+  };
+
+  const togglePause = () => {
+    const m = marble.current;
+    if (run === 'running') {
+      m.moving = false;
+      setRun('paused');
+    } else if (run === 'paused') {
+      m.moving = true;
+      setRun('running');
+    }
   };
 
   const r = Math.hypot(probe.x, probe.z);
   const Vp = (probe.V ?? fieldRef.current.potential(probe.x, probe.z)) * V_UNIT_MJ;
   const [gxu, gzu] = fieldRef.current.field(probe.x, probe.z);
-  const gReal = Math.hypot(gxu, gzu) * ((G * EARTH.M) / EARTH.R ** 2);
+  // field strength in N kg⁻¹, with the surface value set to exactly 9.81
+  const gReal = Math.hypot(gxu, gzu) * 9.81;
   const potential = fieldRef.current.potential;
 
   const legend = (
@@ -481,7 +618,9 @@ export default function PotentialWell({ page }) {
         <h3>The sheet, cut through the middle</h3>
         <p>
           This is a graph of <V>V</V> against distance along the line through{' '}
-          {withMoon ? 'the planet and the moon' : 'the planet'}. The sheet is this curve, spun round.
+          {withMoon
+            ? 'the planet and the moon. With a moon the sheet no longer has rotational symmetry, so this is only one slice through it.'
+            : 'the planet. With one planet the sheet has rotational symmetry: it is this curve, spun round.'}
         </p>
       </div>
       <Plot
@@ -541,17 +680,27 @@ export default function PotentialWell({ page }) {
             display={`${sig(startR, 2)} R`}
           />
           <div className="row">
-            <Button primary onClick={() => launch(0, 'Released from rest: it rolls straight down the slope.')}>
+            <Button primary onClick={() => launch('rest', 'Released from rest: it rolls straight down the slope.')}>
               Release from rest
             </Button>
-            <Button onClick={() => launch(1, 'Launched sideways at just the right speed: it circles along one equipotential.')}>
+            <Button onClick={() => launch('orbit', 'Launched sideways at just the right speed: it circles along one equipotential.')}>
               Launch into orbit
             </Button>
-            <Button onClick={() => launch(1.2, 'Launched faster: it climbs the slope, slows, and falls back. An ellipse.')}>
+            <Button onClick={() => launch('faster', 'Launched faster: it climbs the slope, slows, and falls back. An ellipse.')}>
               Launch faster
             </Button>
-            <Button onClick={() => launch(Math.SQRT2 * 1.02, 'Launched at escape speed: it climbs out of the well.')}>
+            <Button onClick={() => launch('escape', 'Launched at escape speed: it climbs out of the well.')}>
               Launch at escape speed
+            </Button>
+          </div>
+          {withMoon && (
+            <div className="row">
+              <Button onClick={figureEight}>Figure of eight</Button>
+            </div>
+          )}
+          <div className="row">
+            <Button onClick={togglePause} disabled={run === 'idle'}>
+              {run === 'paused' ? 'Resume' : 'Pause'}
             </Button>
           </div>
           <p className="status-line" aria-live="polite">{status}</p>
@@ -575,13 +724,17 @@ export default function PotentialWell({ page }) {
           <Readout label="Speed" value={sig((probe.speed * SPEED_UNIT) / 1000, 3)} unit="km s⁻¹" tone={COLORS.coral} />
         </Readouts>
         <p style={{ marginTop: 10 }}>
-          Values are for the Earth: R = 6371 km, and <V>V</V> = −62.6 MJ kg⁻¹ at the surface.
+          Values are for the Earth: R = 6371 km, and <V>V</V> = −62.6 MJ kg⁻¹ at the surface. The
+          animation is a steady time-lapse: one
+          second shows about {sig((TIME_RATE * EARTH.R) / SPEED_UNIT / 3600, 2)} hours.
         </p>
       </Section>
 
       <Section title="Reading the sheet">
         <Eq block>
-          height ∝ <V>V</V> = −<V>GM</V>/<V>r</V> &nbsp;&nbsp; steepness ∝ <V>g</V>
+          height ∝ <V>V</V> = −<V>GM</V>/<V>r</V>
+          <br />
+          steepness ∝ <V>g</V>
         </Eq>
         <p>
           A real stretched sheet only roughly takes this shape, and a real marble rolls because the
@@ -619,7 +772,50 @@ export default function PotentialWell({ page }) {
     </>
   );
 
-  return <PageLayout page={page} stage={stage} legend={legend} legendPlace="bottom" below={below} panel={panel} />;
+  return <PageLayout page={page} stage={stage} legend={legend} legendPlace="bottom" below={below} panel={panel} notesWide />;
+}
+
+/*
+ * Search for the most nearly circular launch round `host` when another body
+ * also pulls: speeds from 0.7 to 1.3 × the simple estimate and directions
+ * up to ±0.4 rad from sideways, both ways round. Each is followed for one
+ * lap; the score is the largest fractional change in distance from the
+ * host (crashing or leaving the sheet scores 9).
+ */
+function steadiestLaunch(field, bodies, start, host, v0, dir0) {
+  const d0 = Math.hypot(start.x - host.x, start.z - host.z);
+  const lap = (2 * Math.PI * d0 ** 1.5) / Math.sqrt(host.mu);
+  const h = Math.min(0.03, lap / 400);
+  let best = { score: Infinity, v: v0, dir: dir0 };
+  for (const sense of [1, -1]) {
+    for (let a = -0.4; a <= 0.401; a += 0.1) {
+      const c = Math.cos(a);
+      const sn = Math.sin(a);
+      const tx = dir0[0] * sense;
+      const tz = dir0[1] * sense;
+      const dir = [tx * c - tz * sn, tx * sn + tz * c];
+      for (let k = 0.7; k <= 1.301; k += 0.02) {
+        const v = v0 * k;
+        let x = start.x;
+        let z = start.z;
+        let vx = dir[0] * v;
+        let vz = dir[1] * v;
+        let score = 0;
+        for (let t = 0; t < lap && score < best.score; t += h) {
+          const [ax, az] = field(x, z);
+          x += vx * h + 0.5 * ax * h * h;
+          z += vz * h + 0.5 * az * h * h;
+          const [bx, bz] = field(x, z);
+          vx += 0.5 * (ax + bx) * h;
+          vz += 0.5 * (az + bz) * h;
+          score = Math.max(score, Math.abs(Math.hypot(x - host.x, z - host.z) - d0) / d0);
+          if (x * x + z * z > (HALF - 0.3) ** 2 || bodies.some((b) => Math.hypot(x - b.x, z - b.z) < b.R)) score = 9;
+        }
+        if (score < best.score) best = { score, v, dir };
+      }
+    }
+  }
+  return best;
 }
 
 /*

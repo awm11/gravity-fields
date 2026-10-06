@@ -1,23 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { Children, Fragment, isValidElement, useEffect, useRef, useState } from 'react';
+import { KeyIdeas, TryThis } from './ui.jsx';
 import { PAGES, SECTIONS } from '../pages/registry.js';
 import { hrefFor } from '../lib/router.js';
 
-/** Brand mark: a mass with two equipotentials and four field lines. */
-export function Mark({ size = 28 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
-      <circle cx="32" cy="32" r="23" fill="none" stroke="var(--sage)" strokeWidth="2" opacity="0.5" />
-      <circle cx="32" cy="32" r="15.5" fill="none" stroke="var(--sage)" strokeWidth="2" opacity="0.85" />
-      <circle cx="32" cy="32" r="8" fill="var(--brass)" />
-      <path
-        d="M32 2v10M32 52v10M2 32h10M52 32h10"
-        stroke="var(--sky)"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
+const SITE_URL = 'https://awm11.github.io/';
+const LOGO_SRC = `${import.meta.env.BASE_URL}favicon.svg`;
 
 function ContentsMenu({ currentPath }) {
   const [open, setOpen] = useState(false);
@@ -39,8 +26,23 @@ function ContentsMenu({ currentPath }) {
 
   useEffect(() => setOpen(false), [currentPath]);
 
+  // Pointing at "Contents" (with a mouse) opens the menu; moving away closes
+  // it after a short pause, so the pointer can travel down into it.
+  const closeTimer = useRef(0);
+  const onEnter = (e) => {
+    if (e.pointerType !== 'mouse') return;
+    clearTimeout(closeTimer.current);
+    setOpen(true);
+  };
+  const onLeave = (e) => {
+    if (e.pointerType !== 'mouse') return;
+    clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setOpen(false), 250);
+  };
+  useEffect(() => () => clearTimeout(closeTimer.current), []);
+
   return (
-    <div className="contents" ref={wrapRef}>
+    <div className="contents" ref={wrapRef} onPointerEnter={onEnter} onPointerLeave={onLeave}>
       <button
         type="button"
         className="contents-toggle"
@@ -80,17 +82,102 @@ function ContentsMenu({ currentPath }) {
   );
 }
 
+const HIDE_AFTER = 2000; // ms of stillness before the bar slides away
+const REVEAL_ZONE = 72; // px from the top of the window that brings it back
+const SHORT_SCREEN = 860; // px: only windows shorter than this hide the bar
+
+/*
+ * On shorter windows (under SHORT_SCREEN px tall), where every line of
+ * height counts, the bar slides away once the page has been still for a couple of
+ * seconds, and comes back when the reader scrolls up, moves the pointer to
+ * the top of the window, or tabs into it. It stays while the pointer is
+ * over it, while it has keyboard focus, and while the contents menu is open.
+ */
+function useAutoHide(ref, resetKey) {
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    let timer = 0;
+    let lastY = window.scrollY;
+    let pointerY = Infinity; // last known pointer height in the window
+    const pinned = () => {
+      const el = ref.current;
+      if (!el) return false;
+      return (
+        pointerY <= el.getBoundingClientRect().height ||
+        Boolean(el.querySelector(':focus-visible')) ||
+        Boolean(el.querySelector('[aria-expanded="true"]'))
+      );
+    };
+    const arm = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        if (window.innerHeight >= SHORT_SCREEN) return; // tall window: always shown
+        if (pinned()) arm();
+        else setHidden(true);
+      }, HIDE_AFTER);
+    };
+    const show = () => {
+      setHidden(false);
+      arm();
+    };
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y < lastY - 2) show();
+      else arm(); // still moving: restart the countdown
+      lastY = y;
+    };
+    const onPointer = (e) => {
+      pointerY = e.pointerType === 'mouse' ? e.clientY : Infinity;
+      if (e.clientY <= REVEAL_ZONE) show();
+    };
+    const onFocus = (e) => {
+      if (ref.current?.contains(e.target)) show();
+    };
+
+    const onResize = () => {
+      if (window.innerHeight >= SHORT_SCREEN) setHidden(false);
+      else arm();
+    };
+
+    show();
+    window.addEventListener('resize', onResize);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('pointermove', onPointer, { passive: true });
+    window.addEventListener('pointerdown', onPointer, { passive: true });
+    document.addEventListener('focusin', onFocus);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('pointermove', onPointer);
+      window.removeEventListener('pointerdown', onPointer);
+      document.removeEventListener('focusin', onFocus);
+    };
+  }, [ref, resetKey]);
+
+  return hidden;
+}
+
 export function TopBar({ currentPath }) {
   const index = PAGES.findIndex((p) => p.path === currentPath);
   const prev = index > 0 ? PAGES[index - 1] : null;
   const next = index >= 0 && index < PAGES.length - 1 ? PAGES[index + 1] : null;
+  const barRef = useRef(null);
+  const hidden = useAutoHide(barRef, currentPath);
 
   return (
-    <header className="topbar">
-      <a className="brand" href={hrefFor('/')}>
-        <Mark />
-        <span>Gravitational fields</span>
-      </a>
+    <header className={`topbar${hidden ? ' is-hidden' : ''}`} ref={barRef}>
+      <div className="brand">
+        {/* the site logo: links to the awm physics home page, and tips a
+            little to the right when pointed at */}
+        <a className="brand-mark" href={SITE_URL} title="awm physics" aria-label="awm physics home page">
+          <img src={LOGO_SRC} alt="" width="34" height="34" />
+        </a>
+        <a className="brand-title" href={hrefFor('/')}>
+          Gravitational fields
+        </a>
+      </div>
 
       <div className="topbar-nav">
         <ContentsMenu currentPath={currentPath} />
@@ -134,10 +221,87 @@ export function TopBar({ currentPath }) {
  * or bottom-right corner) and just below it on phones, where there is no
  * room to spare over the drawing.
  */
-export function PageLayout({ page, stage, legend, legendPlace = 'bottom', below, panel, stageClass = '' }) {
-  const index = PAGES.findIndex((p) => p.path === page.path);
-  const prev = index > 0 ? PAGES[index - 1] : null;
-  const next = index < PAGES.length - 1 ? PAGES[index + 1] : null;
+/*
+ * Split the side panel's sections: controls and readouts stay at the side;
+ * explanation (Key ideas, Try this, and any <Section below>) goes under the
+ * stage, where there is more room. Fragments are looked inside.
+ */
+function splitPanel(panel) {
+  const side = [];
+  const notes = [];
+  const walk = (node) => {
+    Children.forEach(node, (child) => {
+      if (!isValidElement(child)) return;
+      if (child.type === Fragment) {
+        walk(child.props.children);
+      } else if (child.type === KeyIdeas || child.type === TryThis || child.props.below) {
+        notes.push(child);
+      } else {
+        side.push(child);
+      }
+    });
+  };
+  walk(panel);
+  return { side, notes };
+}
+
+/*
+ * The side panel stays in view as the page scrolls when it fits in the
+ * window. If it is only a little taller (up to 15%), it is shown in full and
+ * scrolls with the page. Taller than that, it stays in view and gets a
+ * scroll bar of its own.
+ */
+const PANEL_TOP = 72; // px: where the sticky panel sits below the top bar
+function SidePanel({ children }) {
+  const innerRef = useRef(null);
+  const [mode, setMode] = useState('sticky'); // sticky | long | scroll
+
+  useEffect(() => {
+    const inner = innerRef.current;
+    if (!inner) return undefined;
+    const check = () => {
+      const room = window.innerHeight - PANEL_TOP - 12;
+      const need = inner.getBoundingClientRect().height;
+      setMode(need <= room ? 'sticky' : need <= room * 1.15 ? 'long' : 'scroll');
+    };
+    const observer = new ResizeObserver(check);
+    observer.observe(inner);
+    window.addEventListener('resize', check);
+    check();
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', check);
+    };
+  }, []);
+
+  return (
+    <aside className={`panel is-${mode}`}>
+      <div className="panel-inner" ref={innerRef}>
+        {children}
+      </div>
+    </aside>
+  );
+}
+
+/** A large previous/next button with an arrow. */
+export function FootLink({ href, kicker, title, next = false }) {
+  return (
+    <a className={`foot-link${next ? ' is-next' : ''}`} href={href}>
+      <span className="foot-arrow" aria-hidden="true">
+        <svg width="18" height="18" viewBox="0 0 16 16">
+          <path d={next ? 'M6 3l5 5-5 5' : 'M10 3L5 8l5 5'} fill="none" stroke="currentColor" strokeWidth="2" />
+        </svg>
+      </span>
+      <span className="foot-text">
+        <span className="foot-kicker">{kicker}</span>
+        <span className="foot-title">{title}</span>
+      </span>
+    </a>
+  );
+}
+
+export function PageLayout({ page, stage, legend, legendPlace = 'bottom', below, panel, stageClass = '', notesWide = false }) {
+  const { side, notes } = splitPanel(panel);
 
   return (
     <article className="page">
@@ -149,7 +313,7 @@ export function PageLayout({ page, stage, legend, legendPlace = 'bottom', below,
         <p className="page-summary">{page.summary}</p>
       </header>
 
-      <div className="page-body">
+      <div className={`page-body${notesWide ? ' has-wide-notes' : ''}`}>
         <div className="page-main">
           <div className={`stage ${stageClass}`}>
             {stage}
@@ -160,33 +324,10 @@ export function PageLayout({ page, stage, legend, legendPlace = 'bottom', below,
           )}
           {below}
         </div>
-        <aside className="panel">{panel}</aside>
+        <SidePanel>{side}</SidePanel>
+        {notes.length > 0 && <div className="page-notes">{notes}</div>}
       </div>
 
-      <nav className="page-foot" aria-label="Continue">
-        {prev ? (
-          <a className="foot-link" href={hrefFor(prev.path)}>
-            <span>Previous</span>
-            {prev.title}
-          </a>
-        ) : (
-          <a className="foot-link" href={hrefFor('/')}>
-            <span>Back to</span>
-            Contents
-          </a>
-        )}
-        {next ? (
-          <a className="foot-link is-next" href={hrefFor(next.path)}>
-            <span>Next</span>
-            {next.title}
-          </a>
-        ) : (
-          <a className="foot-link is-next" href={hrefFor('/')}>
-            <span>Finished</span>
-            Back to contents
-          </a>
-        )}
-      </nav>
     </article>
   );
 }

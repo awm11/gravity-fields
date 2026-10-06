@@ -19,6 +19,13 @@ The build uses relative paths (`base: './'`) and hash routing (`#/orbits`), so
 `dist/` can be served from any folder, including a GitHub Pages project site,
 with no server configuration.
 
+### Deploying to GitHub Pages
+
+`.github/workflows/deploy.yml` builds the site and publishes it on every push to
+`main` (or by hand from the Actions tab). In the repository's Settings → Pages,
+set Source to **GitHub Actions**. Committing a `package-lock.json` makes installs
+faster and repeatable.
+
 ## The pages
 
 | Section | Page | Route | Spec |
@@ -68,23 +75,66 @@ has to. These are also stated on the pages.
 
 - Planets are uniform spheres. Inside them, g ∝ r and V = −GM(3R² − r²)/2R³.
 - Field lines (3D page) are radial lines spread evenly over the surface, with the
-  number proportional to mass, so the count through a loop falls as 1/r².
-- The potential well's marble is moved by the true field, not by rolling.
+  number proportional to mass. The loop always surrounds a curved patch of
+  50 million km² on the sphere of radius r (a spherical cap), so its count is the
+  number of lines per 50 million km², which falls as 1/r². The close-up shows a
+  13 × 13 patch of lines and a small loop that can be dragged up and down.
+- The potential well's marble is moved by the true field, not by rolling. With a
+  moon, "Launch into orbit" tries a spread of speeds and directions and uses the
+  one whose distance from the body it circles varies least over a lap. "Figure
+  of eight" starts at the neutral point at 0.532 (in units of √(GM/R)), 51.85°
+  from the line to the planet: found by search, it holds its shape for many laps. At the
+  edge of the sheet the marble keeps its speed, which matches √(2(E − V)).
+- Field strength from potential: the surface field is set to 9.81 N kg⁻¹ (the
+  quoted G, M and R give 9.82), with V = −gR at the surface to match.
 - Earth and Moon: the bodies are fixed; distances are to scale, the bodies are
   drawn at twice their true size.
 - Escape: the launch is vertical, with no air resistance and no planetary spin.
-- Orbits are circular and ignore every body except the Earth.
+  Every flight is a time-lapse whose rate is always shown. Flights that come
+  back down (and falls from a held height) use one steady rate: at most about
+  20 s. Escapes: up to the axis break the rate grows gently, as (r/R)^¼, so the
+  probe is still seen to slow; an escape-speed run reaches the break in about
+  7 s, then about 1 s more to infinity. Falls from infinity: the same squeezed
+  rule beyond the break, then one steady rate inside 10.5 R (about 6 s).
+  Beyond the axis break the potential and potential-energy graphs are drawn as
+  a flat line at zero.
+- Orbits are circular and ignore every body except the Earth. The view is from
+  below the South Pole, with a very simple map, so the Earth and a geostationary
+  satellite both turn clockwise.
 - Orbital energy: the change of orbit is shown as a slow spiral (a gentle,
   continuous burn), always at the circular speed for the current radius.
 - Cavendish: a typical reconstruction of the apparatus (158 kg and 0.73 kg balls,
   1.86 m rod, 22.5 cm separation, 7 minute period). The twist is exaggerated on
-  screen; the light-spot scale is 5 m away.
+  screen. The balance is drawn turned 45°, with the mirror fixed along the rod;
+  a laser below shines up at it, the reflected beam is drawn at its true angle
+  (stopping short), and the spot on a screen 5 m away shows its movement in mm.
+  Red arrows are the pulls on the small balls; green arrows their velocities.
+  The page shows three pictures, linked from their sources with credits: the
+  NIST torsion-balance animation (S. Kelley/NIST), Cavendish's Fig. 1 from
+  Phil. Trans. 88 (1798) via the IAU OAE (CC BY 4.0), and the 1798 drawing on
+  Wikimedia Commons (public domain). To host copies yourself, save them in
+  `public/media/` and change the `src` values in `PICTURES` in `Cavendish.jsx`.
 - Schiehallion: the mountain's sideways pull is set so that Hutton's figures
   (rock 2500 kg m⁻³, Earth 4500 kg m⁻³) give Maskelyne's 5.8″ at each station.
 
 Constants: G = 6.674 × 10⁻¹¹ N m² kg⁻², M(Earth) = 5.972 × 10²⁴ kg,
 R(Earth) = 6371 km, M(Moon) = 7.342 × 10²² kg, Earth–Moon distance 384 400 km,
 sidereal day 86 164 s.
+
+## Layout
+
+Each page keeps its controls and readouts in the side panel, which stays in view
+as the page scrolls. Explanation (Key ideas, Try this, and any
+`<Section below>`) is laid out under the stage. On phones everything stacks:
+stage, controls, then explanation. The top bar hides itself only on windows
+less than 860 px tall.
+
+## Branding
+
+The logo at the top left is `public/favicon.svg` (also the tab icon); it links to
+https://awm11.github.io/ and tips to the right when pointed at. Every page ends
+with a footer holding the Buy me a coffee button (`src/components/BuyMeCoffee.jsx`)
+at the bottom right.
 
 ## Accessibility
 

@@ -4,7 +4,7 @@ import { Button, Controls, KeyIdeas, Legend, Readout, Readouts, Section, Slider,
 import { Eq, Frac, V } from '../components/Eq.jsx';
 import { Plot, fnPath } from '../components/Plot.jsx';
 import { useCanvas } from '../lib/useCanvas.js';
-import { COLORS, SERIF, arrow, body, label, stars } from '../lib/draw.js';
+import { COLORS, SANS, SERIF, arrow, body, label, stars } from '../lib/draw.js';
 import { EARTH, G, prefersReducedMotion } from '../lib/physics.js';
 import { sig } from '../lib/format.jsx';
 
@@ -83,14 +83,15 @@ export default function OrbitalEnergy({ page }) {
       // angular speed ∝ r^(−3/2); an orbit of r = 1.5 R takes about 3 s
       if (!prefersReducedMotion()) s.angle += dt * ((2 * Math.PI) / 3) * (1.5 / r) ** 1.5;
 
-      stars(ctx, w, h, Math.round((w * h) / 6000), 9);
-
       // --- the orbit view, on the left ---
       const wide = w > 620;
       const split = wide ? w * 0.62 : w;
       const ox = split / 2;
       const oy = wide ? h / 2 : h * 0.34;
       const fit = Math.max(r1, r2, r) * 1.08;
+
+      // the stars drift in a little as the view zooms out for bigger orbits
+      stars(ctx, w, h, Math.round((w * h) / 6000), 9, ((R_MIN * 1.08) / fit) ** 0.25);
       const scale = (Math.min(split, wide ? h : h * 0.56) * 0.45) / fit; // px per R
 
       const ring = (radius, color, dash) => {
@@ -145,22 +146,52 @@ export default function OrbitalEnergy({ page }) {
       bars.forEach((b, i) => {
         const x = bx0 + slot * i + slot * 0.22;
         const bwid = slot * 0.56;
-        // starting value, as an outline
-        ctx.strokeStyle = b.color;
-        ctx.globalAlpha = 0.45;
-        ctx.setLineDash([3, 3]);
-        ctx.strokeRect(x, zero, bwid, -b.start * unit);
-        ctx.setLineDash([]);
-        ctx.globalAlpha = 1;
+        const hNow = -b.v * unit; // signed height in px (up is negative)
+        const hStart = -b.start * unit;
         ctx.fillStyle = b.color;
-        ctx.fillRect(x, zero, bwid, -b.v * unit);
-        const vy = zero - b.v * unit;
-        label(ctx, b.name, x + bwid / 2, b.v >= 0 ? vy - 30 : vy + 16, { align: 'center', size: 13, color: b.color });
-        label(ctx, `${sig(b.v, 3)} GJ`, x + bwid / 2, b.v >= 0 ? vy - 14 : vy + 32, {
-          align: 'center',
-          size: 12,
-          color: COLORS.text2,
-        });
+        ctx.fillRect(x, zero, bwid, hNow);
+
+        // The starting orbit's value (r₁), as a dashed outline. Where it
+        // lies inside the bar now (the new orbit is smaller), it is drawn
+        // dark so it shows against the bar.
+        const sameSide = Math.sign(hNow) === Math.sign(hStart);
+        const startInside = sameSide && Math.abs(hStart) <= Math.abs(hNow) + 0.5;
+        // only once the satellite has left r₁ is there anything to compare
+        const showStart = Math.abs(r - r1) > 1e-3;
+        ctx.save();
+        if (!showStart) ctx.globalAlpha = 0;
+        ctx.setLineDash([4, 3]);
+        ctx.lineWidth = startInside ? 1.6 : 1;
+        ctx.strokeStyle = startInside ? 'rgba(9,13,25,0.85)' : b.color;
+        if (showStart) ctx.globalAlpha = startInside ? 1 : 0.6;
+        ctx.strokeRect(x + 1, zero, bwid - 2, hStart);
+        ctx.restore();
+
+        // Labels go inside the bar, in dark text, when it is big enough;
+        // otherwise just beyond its end, in the bar's colour.
+        const name = b.name;
+        const value = `${sig(b.v, 3)} GJ`;
+        ctx.font = `700 13px ${SANS}`;
+        const nameW = ctx.measureText(name).width;
+        ctx.font = `400 12px ${SANS}`;
+        const textW = Math.max(nameW, ctx.measureText(value).width);
+        const inside = Math.abs(hNow) >= 44 && textW <= bwid - 4;
+        const end = zero + hNow;
+        if (inside) {
+          // name then value, reading down from the end of an upward bar,
+          // or up from the end of a downward one
+          const up = hNow < 0;
+          const yName = up ? end + 16 : end - 32;
+          const yValue = up ? end + 32 : end - 16;
+          barLabel(ctx, name, x + bwid / 2, yName, b.color, 700);
+          barLabel(ctx, value, x + bwid / 2, yValue, b.color, 400);
+        } else {
+          // beyond the bar, and beyond the dashed r₁ outline if that reaches further
+          const reach = Math.abs(hStart) > Math.abs(hNow) && Math.sign(hStart) === Math.sign(hNow) ? hStart : hNow;
+          const out = zero + reach;
+          label(ctx, name, x + bwid / 2, b.v >= 0 ? out - 30 : out + 16, { align: 'center', size: 13, color: b.color, weight: 700 });
+          label(ctx, value, x + bwid / 2, b.v >= 0 ? out - 14 : out + 32, { align: 'center', size: 12, color: COLORS.text2 });
+        }
       });
       if (wide) label(ctx, `Energy of the ${mass} kg satellite`, bx0, top - 24, { size: 13, color: COLORS.text2 });
     },
@@ -171,7 +202,7 @@ export default function OrbitalEnergy({ page }) {
   const stage = (
     <>
       <canvas ref={canvasRef} role="img" aria-label={`A satellite orbiting at ${sig(rNow, 3)} Earth radii, with bars for its kinetic, potential and total energy`} />
-      <p className="stage-note">Orbits to scale. Dashed outlines show the energies in the starting orbit, r₁.</p>
+      <p className="stage-note">Orbits to scale. Once the satellite moves, dashed outlines show its energies in the starting orbit, r₁.</p>
     </>
   );
 
@@ -349,7 +380,22 @@ export default function OrbitalEnergy({ page }) {
     </>
   );
 
-  return <PageLayout page={page} stage={stage} below={below} panel={panel} />;
+  return <PageLayout page={page} stage={stage} below={below} panel={panel} notesWide />;
+}
+
+/** Dark text inside a bar, with a halo in the bar's own colour. */
+function barLabel(ctx, text, x, y, halo, weight) {
+  ctx.save();
+  ctx.font = `${weight} ${weight === 700 ? 13 : 12}px ${SANS}`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.lineJoin = 'round';
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = halo;
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = COLORS.deep;
+  ctx.fillText(text, x, y);
+  ctx.restore();
 }
 
 const signed = (v) => (Math.abs(v) < 1e-9 ? '0' : v > 0 ? `+${sig(v, 3)}` : sig(v, 3));

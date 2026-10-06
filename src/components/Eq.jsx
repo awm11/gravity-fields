@@ -14,6 +14,19 @@ export const Frac = ({ n, d }) => (
   </span>
 );
 
+/**
+ * A square root whose sign stretches to the height of its contents, with a
+ * bar over everything inside, so it is clear what is under the root.
+ */
+export const Sqrt = ({ children }) => (
+  <span className="sqrt">
+    <svg className="sqrt-sign" viewBox="0 0 10 24" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0.5 14 L3 12.5 L6 23 L9.6 0.5 L10 0.5" fill="none" stroke="currentColor" strokeWidth="1.2" vectorEffect="non-scaling-stroke" />
+    </svg>
+    <span className="sqrt-body">{children}</span>
+  </span>
+);
+
 export const Eq = ({ children, block = false }) =>
   block ? <div className="eq eq-block">{children}</div> : <span className="eq">{children}</span>;
 

@@ -9,13 +9,19 @@ import { EARTH, G, clamp, orbitalPeriod, orbitalSpeed, prefersReducedMotion, rad
 import { duration, grouped, sci, sig } from '../lib/format.jsx';
 
 /*
- * A satellite in a circular orbit, seen from above the North Pole, drawn
- * to scale. The Earth turns once per sidereal day; a marked ground station
- * turns with it. Time is sped up so that whichever is quicker, one orbit
- * or one turn of the Earth, takes about five seconds.
+ * A satellite in a circular orbit, seen from below the South Pole, drawn
+ * to scale, so the Earth (with a simple map) turns clockwise and so does a
+ * satellite orbiting the same way. The Earth turns once per sidereal day; a
+ * marked ground station turns with it. Time is sped up so that whichever is
+ * quicker, one orbit or one turn of the Earth, takes about five seconds.
  */
 
 const GEO_R = radiusForPeriod(EARTH.M, EARTH.day); // 42 164 km
+
+// A real place on the equator for the ground station: Quito, Ecuador
+// (0.2° S, 78.5° W), on land and almost exactly on the equator.
+const STATION = { name: 'Quito', lon: -78.5, lat: -0.2 };
+const STATION_A = (STATION.lon * Math.PI) / 180;
 
 const PRESETS = [
   { key: 'iss', label: 'ISS', name: 'International Space Station', r: EARTH.R + 408e3 },
@@ -25,6 +31,11 @@ const PRESETS = [
 ];
 
 const LOG_MIN = Math.log10(EARTH.R * 1.05);
+const T_ISS = orbitalPeriod(EARTH.M, PRESETS[0].r);
+const SCREEN_PERIOD_ISS = 3; // s on screen for one ISS orbit
+const SCREEN_PERIOD_MOON = 60; // s on screen for one orbit of the Moon
+const SCREEN_POWER =
+  Math.log(SCREEN_PERIOD_MOON / SCREEN_PERIOD_ISS) / Math.log(orbitalPeriod(EARTH.M, PRESETS[3].r) / T_ISS);
 const LOG_MAX = Math.log10(4.2e8);
 const K = (4 * Math.PI * Math.PI) / (G * EARTH.M); // T²/r³
 
@@ -41,7 +52,12 @@ export default function Orbits({ page }) {
   const isGeo = Math.abs(T - EARTH.day) / EARTH.day < 0.01;
   const preset = PRESETS.find((p) => Math.abs(Math.log10(p.r) - logR) < 0.002);
   // seconds of orbit per second on screen
-  const warp = Math.min(T, EARTH.day) / 5;
+  // Time-lapse: an orbit on screen takes 3 s at the ISS and longer further
+  // out, as a power of the real period chosen so the Moon takes 60 s (about
+  // 8 s for GPS and 12 s for a geostationary orbit). warp is real seconds
+  // per second.
+  const screenPeriod = SCREEN_PERIOD_ISS * (T / T_ISS) ** SCREEN_POWER;
+  const warp = T / screenPeriod;
 
   const { canvasRef } = useCanvas(
     (ctx, w, h, now) => {
@@ -53,7 +69,7 @@ export default function Orbits({ page }) {
         s.sat += ((2 * Math.PI) / T) * dt * warp;
       }
       // on reaching geostationary, start the satellite above the station
-      if (isGeo && !s.wasGeo) s.sat = (2 * Math.PI * s.t) / EARTH.day + 0.9;
+      if (isGeo && !s.wasGeo) s.sat = (2 * Math.PI * s.t) / EARTH.day + STATION_A;
       s.wasGeo = isGeo;
       const spin = (2 * Math.PI * s.t) / EARTH.day;
 
@@ -62,7 +78,8 @@ export default function Orbits({ page }) {
       const scale = (Math.min(w, h) * 0.4) / r; // px per metre, so the orbit fills the view
       const earthPx = EARTH.R * scale;
 
-      stars(ctx, w, h, Math.round((w * h) / 5000), 5);
+      // the stars drift in a little as the view zooms out to bigger orbits
+      stars(ctx, w, h, Math.round((w * h) / 5000), 5, (10 ** LOG_MIN / r) ** 0.12);
 
       // the orbit
       ctx.save();
@@ -74,30 +91,16 @@ export default function Orbits({ page }) {
       ctx.stroke();
       ctx.restore();
 
-      // the Earth, turning (anticlockwise, seen from above the North Pole)
+      // the Earth, turning (clockwise, seen from below the South Pole)
       body(ctx, cx, cy, Math.max(earthPx, 2.5), 'earth');
-      if (earthPx > 14) {
-        // a few meridians so its turning shows
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(cx, cy, earthPx, 0, Math.PI * 2);
-        ctx.clip();
-        ctx.strokeStyle = 'rgba(232,236,245,0.18)';
-        for (let k = 0; k < 6; k++) {
-          const a = -spin + (k * Math.PI) / 3;
-          ctx.beginPath();
-          ctx.moveTo(cx, cy);
-          ctx.lineTo(cx + Math.cos(a) * earthPx, cy + Math.sin(a) * earthPx);
-          ctx.stroke();
-        }
-        ctx.restore();
-      }
+      if (earthPx > 14) southMap(ctx, cx, cy, earthPx, spin);
 
       // ground station and the line straight up from it
       if (showStation) {
-        const a = -spin - 0.9;
-        const gx = cx + Math.cos(a) * Math.max(earthPx, 2.5);
-        const gy = cy + Math.sin(a) * Math.max(earthPx, 2.5);
+        const a = spin + STATION_A;
+        const rho = Math.max(earthPx * ((90 + STATION.lat) / 90), 2.5);
+        const gx = cx + Math.cos(a) * rho;
+        const gy = cy + Math.sin(a) * rho;
         ctx.save();
         ctx.setLineDash([2, 5]);
         ctx.strokeStyle = 'rgba(227,178,91,0.55)';
@@ -110,14 +113,17 @@ export default function Orbits({ page }) {
         ctx.beginPath();
         ctx.arc(gx, gy, 4, 0, Math.PI * 2);
         ctx.fill();
+        if (earthPx > 40) {
+          label(ctx, STATION.name, gx - Math.cos(a) * 22, gy - Math.sin(a) * 22, { align: 'center', size: 12, color: COLORS.brass });
+        }
       }
 
       // the satellite, its velocity, and the pull of gravity on it
-      const sa = -s.sat;
+      const sa = s.sat; // clockwise on screen, the same way as the Earth turns
       const sx = cx + Math.cos(sa) * r * scale;
       const sy = cy + Math.sin(sa) * r * scale;
-      const tx = Math.sin(sa);
-      const ty = -Math.cos(sa);
+      const tx = -Math.sin(sa);
+      const ty = Math.cos(sa);
       arrow(ctx, sx, sy, sx + tx * 58, sy + ty * 58, COLORS.text, { width: 2, head: 9 });
       label(ctx, 'v', sx + tx * 70, sy + ty * 70, { font: SERIF, italic: true, size: 16, color: COLORS.text, align: 'center' });
       arrow(ctx, sx, sy, sx - Math.cos(sa) * 44, sy - Math.sin(sa) * 44, COLORS.coral, { width: 2.4, head: 10 });
@@ -158,7 +164,7 @@ export default function Orbits({ page }) {
       items={[
         { label: 'Velocity', color: COLORS.text, kind: 'arrow' },
         { label: 'Gravitational force', color: COLORS.coral, kind: 'arrow' },
-        ...(showStation ? [{ label: 'Ground station', color: COLORS.brass, kind: 'dot' }] : []),
+        ...(showStation ? [{ label: 'Ground station, Quito', color: COLORS.brass, kind: 'dot' }] : []),
       ]}
     />
   );
@@ -166,9 +172,11 @@ export default function Orbits({ page }) {
   const stage = (
     <>
       <canvas ref={canvasRef} role="img" aria-label={`A satellite orbiting the Earth at radius ${grouped(r / 1000)} km, period ${duration(T)}`} />
-      <p className="stage-note">
-        Seen from above the North Pole, to scale. 1 second here is {duration(warp)} of real time.
-      </p>
+      <p className="stage-note">Seen from below the South Pole, to scale.</p>
+      <div className="speed-box" aria-live="polite">
+        <span className="speed-box-rate">{grouped(Number(warp.toPrecision(3)))}× speed</span>
+        <span className="speed-box-note">1 second here is {duration(warp)} of real time</span>
+      </div>
     </>
   );
 
@@ -212,7 +220,7 @@ export default function Orbits({ page }) {
               </text>
               <line x1={sx(X0)} x2={sx(X1)} y1={sy(Math.log10(EARTH.day))} y2={sy(Math.log10(EARTH.day))} stroke={COLORS.brass} strokeOpacity="0.4" strokeDasharray="2 4" />
               <text className="plot-note" x={sx(X0) + 6} y={sy(Math.log10(EARTH.day)) - 6} style={{ fill: COLORS.brass }}>
-                one day
+                one (sidereal) day
               </text>
               {PRESETS.map((p) => (
                 <g key={p.key}>
@@ -295,6 +303,7 @@ export default function Orbits({ page }) {
           <Readout label="Period T" value={duration(T)} tone={isGeo ? COLORS.brass : undefined} />
           <Readout label="Field strength there" value={sig((G * EARTH.M) / (r * r), 3)} unit="N kg⁻¹" tone={COLORS.sky} />
           <Readout label="T² / r³" value={sci((T * T) / r ** 3)} unit="s² m⁻³" />
+          <Readout label="One orbit on screen takes" value={sig(screenPeriod, 2)} unit="s" wide />
         </Readouts>
       </Section>
 
@@ -340,7 +349,96 @@ export default function Orbits({ page }) {
     </>
   );
 
-  return <PageLayout page={page} stage={stage} legend={legend} legendPlace="top" below={below} panel={panel} />;
+  return <PageLayout page={page} stage={stage} legend={legend} legendPlace="top" below={below} panel={panel} notesWide />;
+}
+
+/*
+ * A very simple map of the southern hemisphere, as seen from below the
+ * South Pole: an azimuthal projection centred on the pole, with the equator
+ * at the rim. Longitude runs clockwise on screen (east is clockwise from
+ * below), and the whole map turns by `spin`.
+ * Outlines are rough [longitude, latitude] pairs in degrees.
+ */
+const LAND = [
+  // Antarctica
+  [[-180, -78], [-150, -76], [-120, -73], [-90, -72], [-70, -68], [-60, -63], [-56, -64], [-58, -70], [-45, -77], [-30, -76], [-20, -72],
+    [0, -70], [30, -69], [60, -67], [90, -66], [120, -66], [150, -68], [165, -72], [180, -78]],
+  // Australia
+  [[113, -22], [114, -34], [117, -35], [123, -34], [131, -31.5], [135, -34], [138, -35], [140, -38], [146, -39], [150, -37], [153, -32],
+    [153, -25], [146, -19], [142, -11], [141, -13], [136, -12], [130, -12], [126, -14], [122, -18], [114, -22]],
+  // Tasmania
+  [[145, -40.8], [148.3, -40.9], [148, -43], [146, -43.6]],
+  // New Zealand
+  [[166.5, -46], [169, -46.6], [174.3, -41.6], [172.7, -40.5]],
+  [[172.7, -34.5], [175.3, -37], [178.5, -37.7], [175.2, -41.6], [174.5, -39]],
+  // South America, south of the equator
+  [[-80, 0], [-81, -5], [-77, -12], [-71, -18], [-70.3, -25], [-71.5, -30], [-73.5, -38], [-74, -45], [-75.5, -50], [-72.5, -54], [-68, -55.5],
+    [-66, -55], [-68.5, -52], [-66, -48], [-65, -45], [-63.5, -42], [-62, -39], [-57.5, -38], [-57, -35], [-53, -34], [-48.5, -28], [-48, -25],
+    [-41, -22], [-39, -15], [-35, -8], [-35, -5], [-40, -3], [-50, 0]],
+  // Africa, south of the equator
+  [[9, 0], [9.3, -1], [12, -6], [13.5, -12], [12, -17], [15, -27], [18, -31], [18.4, -34.3], [20, -34.8], [25, -34], [28, -33], [31, -29.5],
+    [32.8, -26], [35.3, -24], [35, -20], [39.5, -15], [40.3, -10], [39.2, -5], [42, 0]],
+  // Madagascar
+  [[44, -25], [47.2, -25], [50.4, -15.5], [49.3, -12], [44.2, -16.5]],
+];
+
+function southMap(ctx, cx, cy, R, spin) {
+  const toXY = ([lon, lat]) => {
+    const rho = (R * (90 + lat)) / 90;
+    const a = (lon * Math.PI) / 180 + spin;
+    return [cx + Math.cos(a) * rho, cy + Math.sin(a) * rho];
+  };
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R, 0, Math.PI * 2);
+  ctx.clip();
+  // a faint graticule: latitude circles and meridians every 30°
+  ctx.strokeStyle = 'rgba(232,236,245,0.14)';
+  ctx.lineWidth = 1;
+  for (const lat of [-60, -30]) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, (R * (90 + lat)) / 90, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  for (let lon = 0; lon < 360; lon += 30) {
+    const [x, y] = toXY([lon, 0]);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+  }
+  // land: each edge is followed in small steps of latitude and longitude,
+  // so edges along the equator follow the rim instead of cutting across
+  LAND.forEach((shape, i) => {
+    ctx.beginPath();
+    shape.forEach((pt, k) => {
+      const prev = shape[(k + shape.length - 1) % shape.length];
+      if (k === 0) {
+        ctx.moveTo(...toXY(pt));
+        return;
+      }
+      for (let j = 1; j <= 8; j++) {
+        ctx.lineTo(...toXY([prev[0] + ((pt[0] - prev[0]) * j) / 8, prev[1] + ((pt[1] - prev[1]) * j) / 8]));
+      }
+    });
+    const first = shape[0];
+    const last = shape[shape.length - 1];
+    // (Antarctica wraps right round: its ends meet at ±180°, so no closing edge)
+    for (let j = 1; j <= 16 && Math.abs(first[0] - last[0]) < 359; j++) {
+      ctx.lineTo(...toXY([last[0] + ((first[0] - last[0]) * j) / 16, last[1] + ((first[1] - last[1]) * j) / 16]));
+    }
+    ctx.closePath();
+    ctx.fillStyle = i === 0 ? 'rgba(236,242,248,0.92)' : 'rgba(142,178,104,0.9)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(9,13,25,0.35)';
+    ctx.stroke();
+  });
+  ctx.restore();
+  // the South Pole
+  ctx.fillStyle = COLORS.deep;
+  ctx.beginPath();
+  ctx.arc(cx, cy, 1.8, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 /** A round number of km for the scale bar. */

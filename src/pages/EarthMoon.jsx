@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { PageLayout } from '../components/Shell.jsx';
 import { Controls, KeyIdeas, Legend, Readout, Readouts, Section, Segmented, Switch, TryThis } from '../components/ui.jsx';
-import { Eq, V } from '../components/Eq.jsx';
+import { Eq, Frac, Sqrt, V } from '../components/Eq.jsx';
 import { Plot, fnPath } from '../components/Plot.jsx';
 import { useCanvas, localPoint } from '../lib/useCanvas.js';
 import { COLORS, SERIF, arrow, body, label, stars } from '../lib/draw.js';
@@ -122,10 +122,13 @@ export default function EarthMoon({ page }) {
       const cx = px(x);
       const up = cy - 26;
       const down = cy + 26;
+      // Near the neutral point the resultant is too small to draw: the
+      // arrow and its g label give way to a note.
+      const showResultant = Math.abs(len(g)) > 5;
       if (Math.abs(len(gE)) > 2) arrow(ctx, cx, up, cx + len(gE), up, COLORS.sky, { width: 2.4, head: 10 });
       if (Math.abs(len(gM)) > 2) arrow(ctx, cx, up, cx + len(gM), up, MOON_COLOR, { width: 2.4, head: 10 });
-      if (Math.abs(len(g)) > 2) arrow(ctx, cx, down, cx + len(g), down, COLORS.coral, { width: 3, head: 12 });
-      else label(ctx, 'no resultant pull', cx, down, { align: 'center', size: 12, color: COLORS.coral });
+      if (showResultant) arrow(ctx, cx, down, cx + len(g), down, COLORS.coral, { width: 3, head: 12 });
+      else label(ctx, 'no resultant pull', cx, down + 4, { align: 'center', size: 12, color: COLORS.coral });
 
       // the craft
       ctx.beginPath();
@@ -136,13 +139,15 @@ export default function EarthMoon({ page }) {
       ctx.strokeStyle = COLORS.deep;
       ctx.stroke();
       label(ctx, 'craft', cx, cy - 46, { align: 'center', size: 12, color: COLORS.text2 });
-      label(ctx, 'g', cx + len(g) + (g < 0 ? -12 : 12), down, {
-        font: SERIF,
-        italic: true,
-        size: 17,
-        color: COLORS.coral,
-        align: 'center',
-      });
+      if (showResultant) {
+        label(ctx, 'g', cx + len(g) + (g < 0 ? -12 : 12), down, {
+          font: SERIF,
+          italic: true,
+          size: 17,
+          color: COLORS.coral,
+          align: 'center',
+        });
+      }
     },
     [x, ratio],
   );
@@ -316,9 +321,13 @@ export default function EarthMoon({ page }) {
               <V>d</V>
             </span>
             <span className="frac-d">
-              1 + √(<V>M</V>
-              <sub>moon</sub> / <V>M</V>
-              <sub>Earth</sub>)
+              1 +{' '}
+              <Sqrt>
+                <Frac
+                  n={<><V>M</V><sub>Moon</sub></>}
+                  d={<><V>M</V><sub>Earth</sub></>}
+                />
+              </Sqrt>
             </span>
           </span>
         </Eq>
@@ -364,7 +373,7 @@ export default function EarthMoon({ page }) {
     </>
   );
 
-  return <PageLayout page={page} stage={stage} legend={legend} legendPlace="top" below={below} panel={panel} stageClass="is-strip" />;
+  return <PageLayout page={page} stage={stage} legend={legend} legendPlace="top" below={below} panel={panel} stageClass="is-strip" notesWide />;
 }
 
 /** GM_E/x² = GM_M/(d − x)² */
@@ -384,7 +393,7 @@ function Frac2() {
       <span className="frac">
         <span className="frac-n">
           <V>GM</V>
-          <sub>moon</sub>
+          <sub>Moon</sub>
         </span>
         <span className="frac-d">
           (<V>d</V> − <V>x</V>)²

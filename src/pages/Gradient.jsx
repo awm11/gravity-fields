@@ -4,7 +4,7 @@ import { Controls, KeyIdeas, Readout, Readouts, Section, Segmented, Switch, TryT
 import { Eq, Frac, V } from '../components/Eq.jsx';
 import { Plot, areaPath, fnPath } from '../components/Plot.jsx';
 import { COLORS } from '../lib/draw.js';
-import { EARTH, G, clamp } from '../lib/physics.js';
+import { EARTH, clamp } from '../lib/physics.js';
 import { sig } from '../lib/format.jsx';
 
 /*
@@ -17,13 +17,18 @@ import { sig } from '../lib/format.jsx';
  */
 
 const R_MAX = 6;
-const V_SURFACE = (G * EARTH.M) / EARTH.R / 1e6; // 62.56 MJ kg⁻¹
-const G_SURFACE = (G * EARTH.M) / EARTH.R ** 2; // 9.82 N kg⁻¹
+// The surface field is set to the familiar 9.81 N kg⁻¹ (G, M and R as
+// quoted give 9.82), and V at the surface follows from it: V = −gR, since
+// GM = gR². This keeps the two graphs exactly consistent.
+const G_SURFACE = 9.81; // N kg⁻¹
+const V_SURFACE = (G_SURFACE * EARTH.R) / 1e6; // 62.50 MJ kg⁻¹
 const SQUARE = 1 * 2 * EARTH.R / 1e6; // one grid square on the g graph: 1 R × 2 N kg⁻¹, in MJ kg⁻¹
 
 // potential (MJ kg⁻¹) and field strength (N kg⁻¹) at r, in Earth radii
 const Vr = (r) => (r >= 1 ? -V_SURFACE / r : (-V_SURFACE * (3 - r * r)) / 2);
 const gr = (r) => (r >= 1 ? G_SURFACE / (r * r) : G_SURFACE * r);
+// g as plotted: negative, because the field points inwards
+const gSigned = (r) => -gr(r);
 // gradient of V, in MJ kg⁻¹ per R
 const slope = (r) => (r >= 1 ? V_SURFACE / (r * r) : V_SURFACE * r);
 
@@ -37,13 +42,19 @@ export default function Gradient({ page }) {
   const vFloor = inside ? -100 : -70;
 
   const pick = (xv) => {
-    const x = clamp(Math.round(xv * 20) / 20, inside ? 0.05 : 1, R_MAX);
+    // Dragging inside the planet switches that region on, so the line can
+    // be taken right down to r = 0, where g and the gradient are zero.
+    let x = clamp(Math.round(xv * 20) / 20, 0, R_MAX);
+    if (x < 1 && !inside) {
+      if (xv < 0.95) setInside(true);
+      else x = 1;
+    }
     if (mode === 'gradient') {
       setR(x);
     } else {
       // move whichever end is nearer
       const [a, b] = span;
-      setSpan(Math.abs(x - a) <= Math.abs(x - b) ? [Math.min(x, b - 0.1), b] : [a, Math.max(x, a + 0.1)]);
+      setSpan(Math.abs(x - a) <= Math.abs(x - b) ? [Math.max(0, Math.min(x, b - 0.1)), b] : [a, Math.max(x, a + 0.1)]);
     }
   };
 
@@ -58,7 +69,10 @@ export default function Gradient({ page }) {
   // gradient mode
   const s = slope(r); // MJ kg⁻¹ per R
   const sSI = (s * 1e6) / EARTH.R; // J kg⁻¹ m⁻¹ = N kg⁻¹
-  const dr = Math.min(1, 24 / s); // triangle base, in R
+  const dr = s > 0 ? Math.min(1, 24 / s) : 1; // triangle base, in R
+  // below about 1.6 R the base is less than 1 R: show it to 3 figures so the
+  // sum in the panel works out with the numbers shown
+  const drText = dr < 1 ? sig(dr, 3) : sig(dr, 2);
   // area mode
   const [r1, r2] = span;
   const dV = Vr(r2) - Vr(r1); // MJ kg⁻¹
@@ -114,7 +128,9 @@ export default function Gradient({ page }) {
                     stroke={COLORS.brass}
                     strokeWidth="1.6"
                   />
-                  {/* gradient triangle */}
+                  {/* gradient triangle (none at the centre, where the tangent is flat) */}
+                  {s > 0 ? (
+                  <>
                   <path
                     d={`M${sx(r)},${sy(Vr(r))} L${sx(r + dr)},${sy(Vr(r))} L${sx(r + dr)},${sy(Vr(r) + dr * s)}`}
                     fill="rgba(227,178,91,0.12)"
@@ -122,11 +138,17 @@ export default function Gradient({ page }) {
                     strokeDasharray="4 3"
                   />
                   <text className="plot-note" x={sx(r + dr / 2)} y={sy(Vr(r)) + 16} textAnchor="middle">
-                    Δr = {sig(dr, 2)} R
+                    Δr = {drText} R
                   </text>
                   <text className="plot-note" x={sx(r + dr) + 6} y={sy(Vr(r) + (dr * s) / 2)} dominantBaseline="middle">
                     ΔV = {sig(dr * s, 3)}
                   </text>
+                  </>
+                  ) : (
+                    <text className="plot-note" x={sx(r) + 12} y={sy(Vr(r)) - 12}>
+                      flat tangent: gradient = 0, so g = 0
+                    </text>
+                  )}
                   <line x1={sx(r)} x2={sx(r)} y1={sy(0)} y2={sy(vFloor)} stroke={COLORS.brass} strokeOpacity="0.35" />
                   <circle cx={sx(r)} cy={sy(Vr(r))} r="6" fill={COLORS.brass} />
                 </>
@@ -161,40 +183,40 @@ export default function Gradient({ page }) {
         <h3>Field strength, <V>g</V></h3>
         <p>
           {mode === 'gradient'
-            ? 'Its value at r is the size of the gradient above.'
-            : 'The shaded area equals the change in V above.'}
+            ? 'g is minus the gradient above: negative, because the field points in towards the planet.'
+            : 'The size of the shaded area, between the curve and the r axis, equals the change in V above.'}
         </p>
       </div>
       <Plot
         x={[0, R_MAX]}
-        y={[0, 10]}
+        y={[-10, 0]}
         height={230}
         xTicks={xTicks}
-        yTicks={[0, 2, 4, 6, 8, 10]}
+        yTicks={[-10, -8, -6, -4, -2, 0]}
         xLabel="r / R"
         yLabel="g / N kg⁻¹"
         onPointer={pick}
-        ariaLabel="Graph of field strength against distance: an inverse-square curve outside the planet"
+        ariaLabel="Graph of field strength against distance: negative, an inverse-square curve outside the planet rising towards zero"
       >
         {(sc) => {
           const { sx, sy } = sc;
           return (
             <>
-              {shadeInside(sc, 10, 0)}
-              {mode === 'area' && <path d={areaPath(gr, r1, r2, sx, sy, 0)} fill="rgba(242,115,94,0.28)" stroke="none" />}
-              <path d={fnPath(gr, rMin, R_MAX, sx, sy, 300)} fill="none" stroke={COLORS.sky} strokeWidth="2.4" />
+              {shadeInside(sc, 0, -10)}
+              {mode === 'area' && <path d={areaPath(gSigned, r1, r2, sx, sy, 0)} fill="rgba(242,115,94,0.28)" stroke="none" />}
+              <path d={fnPath(gSigned, rMin, R_MAX, sx, sy, 300)} fill="none" stroke={COLORS.sky} strokeWidth="2.4" />
               {mode === 'gradient' && (
                 <>
-                  <line x1={sx(r)} x2={sx(r)} y1={sy(10)} y2={sy(0)} stroke={COLORS.brass} strokeOpacity="0.35" />
-                  <line x1={sx(0)} x2={sx(r)} y1={sy(gr(r))} y2={sy(gr(r))} stroke={COLORS.brass} strokeDasharray="3 4" />
-                  <circle cx={sx(r)} cy={sy(gr(r))} r="6" fill={COLORS.brass} />
+                  <line x1={sx(r)} x2={sx(r)} y1={sy(-10)} y2={sy(0)} stroke={COLORS.brass} strokeOpacity="0.35" />
+                  <line x1={sx(0)} x2={sx(r)} y1={sy(gSigned(r))} y2={sy(gSigned(r))} stroke={COLORS.brass} strokeDasharray="3 4" />
+                  <circle cx={sx(r)} cy={sy(gSigned(r))} r="6" fill={COLORS.brass} />
                 </>
               )}
               {mode === 'area' &&
                 [r1, r2].map((x, i) => (
                   <g key={i}>
-                    <line x1={sx(x)} x2={sx(x)} y1={sy(10)} y2={sy(0)} stroke={COLORS.coral} strokeOpacity="0.5" />
-                    <text className="plot-note" x={sx(x) + 6} y={sy(9.3)} textAnchor="start">
+                    <line x1={sx(x)} x2={sx(x)} y1={sy(-10)} y2={sy(0)} stroke={COLORS.coral} strokeOpacity="0.5" />
+                    <text className="plot-note" x={sx(x) + 6} y={sy(-9.3)} textAnchor="start">
                       {i ? 'r₂' : 'r₁'}
                     </text>
                   </g>
@@ -205,8 +227,9 @@ export default function Gradient({ page }) {
       </Plot>
       {inside && (
         <p className="plot-caption">
-          The shaded band is inside the planet, modelled as a uniform sphere: there <V>g</V> grows in
-          proportion to <V>r</V>, from zero at the centre.
+          The shaded band is inside the planet, modelled as a uniform sphere: there the size of{' '}
+          <V>g</V> grows in proportion to <V>r</V>, from zero at the centre to 9.81 N kg⁻¹ at the
+          surface.
         </p>
       )}
     </>
@@ -237,35 +260,50 @@ export default function Gradient({ page }) {
           <Readouts>
             <Readout label="Distance r" value={sig(r, 3)} unit="R" />
             <Readout label="Potential V" value={sig(Vr(r), 3)} unit="MJ kg⁻¹" tone={COLORS.sage} />
-            <Readout label="Gradient ΔV/Δr" value={`+${sig(sSI, 3)}`} unit="J kg⁻¹ m⁻¹" tone={COLORS.brass} wide />
-            <Readout label="Field strength g" value={sig(-sSI, 3)} unit="N kg⁻¹" tone={COLORS.sky} wide />
+            <Readout label="Gradient ΔV/Δr" value={sSI > 0 ? `+${sig(sSI, 3)}` : '0'} unit="J kg⁻¹ m⁻¹" tone={COLORS.brass} wide />
+            <Readout label="Field strength g" value={sSI > 0 ? sig(-sSI, 3) : '0'} unit="N kg⁻¹" tone={COLORS.sky} wide />
           </Readouts>
           <p style={{ marginTop: 10 }}>
-            The gradient is positive: <V>V</V> rises as you move out. The minus sign says the field
-            points the other way, down the potential hill, towards the planet. Its size,{' '}
-            {sig(sSI, 3)} N kg⁻¹, is the height of the curve on the <V>g</V> graph
-            {r >= 1 ? (
+            {r === 0 ? (
               <>
-                , and equals <V>GM</V>/<V>r</V>².
+                At the centre the tangent is flat: the gradient is zero, so <V>g</V> = 0. Every part
+                of the planet pulls equally in every direction.
               </>
             ) : (
-              '.'
+              <>
+                The gradient is positive: <V>V</V> rises as you move out. So <V>g</V>, minus the
+                gradient, is negative: the field points the other way, down the potential hill,
+                towards the planet. The <V>g</V> graph shows this value, −{sig(sSI, 3)} N kg⁻¹
+                {r >= 1 ? (
+                  <>
+                    , and its size equals <V>GM</V>/<V>r</V>².
+                  </>
+                ) : (
+                  '.'
+                )}
+              </>
             )}
           </p>
           <p>
-            Reading the triangle: {sig(dr * s, 3)} MJ kg⁻¹ ÷ ({sig(dr, 2)} × 6371 km) ={' '}
-            {sig(sSI, 3)} N kg⁻¹.
+            Using the triangle to find the gradient gives Δ<V>V</V>/Δ<V>r</V> = {sig(dr * s, 3)} MJ kg⁻¹ ÷ (
+            {drText} × 6371 km) = {sig(sSI, 3)} N kg⁻¹.
           </p>
         </Section>
       ) : (
         <Section title="Area under the field strength graph">
           <Eq block>
-            Δ<V>V</V> = area under the <V>g</V>–<V>r</V> graph
+            Δ<V>V</V> = −∫ <V>g</V> d<V>r</V> = the area between the <V>g</V>–<V>r</V> graph and the <V>r</V> axis
           </Eq>
+          <p>
+            <V>g</V> is the force per kilogram (negative here, because it points inwards). Moving out
+            against it, the work done per kilogram is (force per kilogram) × (distance) added up over
+            the whole distance: −∫ <V>g</V> d<V>r</V>, the size of the area between the curve and the{' '}
+            <V>r</V> axis. That is the change in potential.
+          </p>
           <Readouts>
             <Readout label="From r₁" value={sig(r1, 3)} unit="R" />
             <Readout label="To r₂" value={sig(r2, 3)} unit="R" />
-            <Readout label="Area under g" value={sig(area, 3)} unit="MJ kg⁻¹" tone={COLORS.coral} />
+            <Readout label="Area between g and the r axis" value={sig(area, 3)} unit="MJ kg⁻¹" tone={COLORS.coral} />
             <Readout label="ΔV from the V graph" value={`+${sig(dV, 3)}`} unit="MJ kg⁻¹" tone={COLORS.sage} />
             <Readout label="Work to lift a 1000 kg probe" value={sig((dV * 1e6 * 1000) / 1e9, 3)} unit="GJ" tone={COLORS.brass} wide />
           </Readouts>
@@ -282,18 +320,29 @@ export default function Gradient({ page }) {
           grows. Its graph is a 1/<V>r</V> curve.
         </li>
         <li>
-          <V>g</V> = <V>GM</V>/<V>r</V>² falls faster, as 1/<V>r</V>². Double the distance and{' '}
-          <V>V</V> halves, but <V>g</V> falls to a quarter.
+          The size of <V>g</V>, <V>GM</V>/<V>r</V>², falls faster, as 1/<V>r</V>². Double the distance
+          and <V>V</V> halves, but <V>g</V> falls to a quarter.
         </li>
         <li>
           The field strength at a point is minus the gradient of the <V>V</V>–<V>r</V> graph
           there: <V>g</V> = −Δ<V>V</V>/Δ<V>r</V>. Steep potential, strong field.
         </li>
         <li>
-          The area under the <V>g</V>–<V>r</V> graph between two distances is the potential
-          difference between them, the work done per kilogram to move between them.
+          The area between the <V>g</V>–<V>r</V> graph and the <V>r</V> axis, between two distances,
+          comes from the integral of the force per kilogram over that distance: Δ<V>V</V> = −∫{' '}
+          <V>g</V> d<V>r</V>. Force × distance is work, so the area is the work done per kilogram to
+          move between them: the potential difference Δ<V>V</V>.
         </li>
       </KeyIdeas>
+
+      <Section title="Study tip">
+        <p className="study-tip">
+          You do not need to know the shape of the potential <em>inside</em> a planet. You do need
+          to know how the field strength behaves there: for a uniform planet <V>g</V> rises in
+          proportion to <V>r</V>, from zero at the centre to its surface value, then falls as
+          1/<V>r</V>² outside.
+        </p>
+      </Section>
 
       <TryThis>
         <li>Find the gradient at 2 R and at 4 R. How do they compare?</li>
@@ -305,5 +354,5 @@ export default function Gradient({ page }) {
     </>
   );
 
-  return <PageLayout page={page} stage={stage} panel={panel} stageClass="is-auto" />;
+  return <PageLayout page={page} stage={stage} panel={panel} stageClass="is-auto" notesWide />;
 }

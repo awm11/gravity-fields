@@ -16,6 +16,7 @@ export function Slider({
   marks = [],
   disabled = false,
   hint,
+  aside,
 }) {
   const id = useId();
   const fraction = Math.min(1, Math.max(0, (value - min) / (max - min)));
@@ -50,6 +51,7 @@ export function Slider({
         ))}
       </div>
       {hint && <p className="slider-hint">{hint}</p>}
+      {aside && <div className="slider-aside">{aside}</div>}
     </div>
   );
 }
@@ -118,7 +120,9 @@ export function Readouts({ children }) {
 }
 
 /** A titled block in the side panel. */
-export function Section({ title, children }) {
+// `below` marks an explanatory section: the page layout puts it under the stage.
+// eslint-disable-next-line no-unused-vars
+export function Section({ title, children, below }) {
   return (
     <section className="panel-section">
       {title && <h2>{title}</h2>}
@@ -164,5 +168,20 @@ export function Legend({ items }) {
         </li>
       ))}
     </ul>
+  );
+}
+
+/** A small "Did you know?" button whose note opens on hover or focus. */
+export function InfoTip({ label = 'Did you know?', title, children }) {
+  return (
+    <span className="info-tip">
+      <button type="button" aria-label={label}>
+        <span aria-hidden="true">ⓘ</span> {label}
+      </button>
+      <span className="info-tip-bubble" role="tooltip">
+        {title && <strong>{title}</strong>}
+        {children}
+      </span>
+    </span>
   );
 }

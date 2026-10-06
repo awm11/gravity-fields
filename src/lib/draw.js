@@ -110,19 +110,35 @@ export function label(ctx, text, x, y, {
   ctx.restore();
 }
 
-/** Faint star field, seeded so it doesn't flicker between frames. */
-export function stars(ctx, w, h, count = 120, seed = 7) {
+/**
+ * Faint star field, seeded so it doesn't flicker between frames.
+ *
+ * Pass zoom (≤ 1) on pages that zoom: smaller values draw the field pulled in towards the centre, as if the view had
+ * zoomed out a little (stars from beyond the edges come into view). The
+ * field is generated over SPAN × the canvas so there are always stars to
+ * fill the edges, down to zoom = 1/SPAN.
+ */
+const STAR_SPAN = 2.4;
+export function stars(ctx, w, h, count = 120, seed = 7, zoom = null) {
   let s = seed;
   const rand = () => {
     s = (s * 16807) % 2147483647;
     return s / 2147483647;
   };
+  const zoomed = zoom != null;
+  const z = zoomed ? Math.max(1 / STAR_SPAN + 0.02, Math.min(1, zoom)) : 1;
+  const span = zoomed ? STAR_SPAN : 1;
+  const n = Math.round(count * span * span);
   ctx.save();
-  for (let i = 0; i < count; i++) {
-    const x = rand() * w;
-    const y = rand() * h;
-    const r = rand() * 0.9 + 0.2;
-    ctx.globalAlpha = 0.15 + rand() * 0.45;
+  for (let i = 0; i < n; i++) {
+    const u = (rand() - 0.5) * span;
+    const v = (rand() - 0.5) * span;
+    const x = w / 2 + u * w * z;
+    const y = h / 2 + v * h * z;
+    const r = (rand() * 0.9 + 0.2) * (0.75 + 0.25 * z);
+    const alpha = 0.15 + rand() * 0.45;
+    if (x < -2 || x > w + 2 || y < -2 || y > h + 2) continue;
+    ctx.globalAlpha = alpha;
     ctx.fillStyle = '#dfe7f5';
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);

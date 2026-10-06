@@ -17,6 +17,7 @@ import { sci, sig } from '../lib/format.jsx';
 
 const WORLD_HALF_WIDTH = 7.5; // Earth radii from the centre of the view to its side
 const STEP = 5e6; // equipotential spacing, J kg⁻¹ (5 MJ kg⁻¹)
+const SNAP_PX = 18; // a route ending this close to its start closes the loop
 
 export default function Equipotentials({ page }) {
   const [mode, setMode] = useState('one');
@@ -27,6 +28,7 @@ export default function Equipotentials({ page }) {
   const [probe, setProbe] = useState({ x: 3.2, y: 1.6 }); // in Earth radii
   const [trip, setTrip] = useState(null); // { start, path: [[x,y]...] }
   const [walking, setWalking] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const view = useRef(null);
   const drag = useRef(false);
 
@@ -68,7 +70,7 @@ export default function Equipotentials({ page }) {
   const g = Math.hypot(gx, gy);
   // ΔV along the route; differences far below one step are rounding noise
   const rawDV = trip && trip.path.length > 1 ? Vp - potential(...trip.path[0]) : 0;
-  const dV = Math.abs(rawDV) < 1e-5 * Math.abs(Vp) ? 0 : rawDV;
+  const dV = trip?.closed || Math.abs(rawDV) < 1e-5 * Math.abs(Vp) ? 0 : rawDV;
   const work = mass * dV;
   const pathLength = trip
     ? trip.path.reduce((sum, p, i) => (i ? sum + Math.hypot(p[0] - trip.path[i - 1][0], p[1] - trip.path[i - 1][1]) : 0), 0)
@@ -152,9 +154,22 @@ export default function Equipotentials({ page }) {
         const ang = mode === 'one' ? -0.62 : 2.35;
         let last = null;
         // outermost first; skip a label that would crowd the one before
+        // where along the ray the potential, from every body, equals L
+        const along = (r) => potential(main.x + Math.cos(ang) * r, main.y + Math.sin(ang) * r);
+        const radiusFor = (L) => {
+          let lo = main.R * 1.001;
+          let hi = 40;
+          if (along(lo) > L || along(hi) < L) return NaN;
+          for (let k = 0; k < 40; k++) {
+            const mid = (lo + hi) / 2;
+            if (along(mid) < L) lo = mid;
+            else hi = mid;
+          }
+          return (lo + hi) / 2;
+        };
         levels.forEach((L) => {
-          const r = (G * main.M) / -L / EARTH.R; // radius for a lone mass
-          if (r < main.R * 1.15) return;
+          const r = radiusFor(L);
+          if (!Number.isFinite(r) || r < main.R * 1.15) return;
           const [px, py] = toPx(main.x + Math.cos(ang) * r, main.y + Math.sin(ang) * r);
           if (px < 30 || px > w - 30 || py < 14 || py > h - 14) return;
           if (last && Math.hypot(px - last[0], py - last[1]) < 24) return;
@@ -188,7 +203,26 @@ export default function Equipotentials({ page }) {
         ctx.beginPath();
         ctx.arc(sx, sy, 4, 0, Math.PI * 2);
         ctx.fill();
-        label(ctx, 'start', sx + 8, sy - 10, { size: 12, color: COLORS.coral });
+        // while dragging a long enough route, show where letting go closes it
+        if (dragging && pathLength > 1) {
+          ctx.save();
+          ctx.setLineDash([3, 4]);
+          ctx.strokeStyle = 'rgba(242,115,94,0.7)';
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.arc(sx, sy, SNAP_PX, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.restore();
+        }
+        if (trip.closed) {
+          label(ctx, 'Back to the start: ΔV = 0, so no work done overall', sx + 14, sy - 26, {
+            size: 13,
+            color: COLORS.coral,
+            align: sx > w * 0.6 ? 'right' : 'left',
+          });
+        } else {
+          label(ctx, 'start', sx + 8, sy - 10, { size: 12, color: COLORS.coral });
+        }
       }
 
       // the test mass and the field on it
@@ -204,7 +238,7 @@ export default function Equipotentials({ page }) {
       ctx.stroke();
       label(ctx, 'm', px + 12, py + 12, { font: SERIF, italic: true, size: 16, color: COLORS.text });
     },
-    [mode, moonRatio, showLines, showLabels, probe, trip],
+    [mode, moonRatio, showLines, showLabels, probe, trip, dragging, pathLength],
   );
 
   // walk the test mass along its equipotential, one full loop
@@ -212,6 +246,8 @@ export default function Equipotentials({ page }) {
     if (!walking) return undefined;
     const level = potential(probe.x, probe.y);
     let { x, y } = probe;
+    const x0 = x;
+    const y0 = y;
     let raf;
     let travelled = 0;
     const startAngle = Math.atan2(y - bodies[0].y, x - bodies[0].x);
@@ -243,6 +279,11 @@ export default function Equipotentials({ page }) {
       setProbe(pt);
       setTrip((t) => (t ? { ...t, path: [...t.path, [x, y]] } : t));
       if (Math.abs(turned) >= Math.PI * 2 || travelled > 80) {
+        // a full lap ends where it began: close the loop exactly
+        if (Math.abs(turned) >= Math.PI * 2) {
+          setProbe({ x: x0, y: y0 });
+          setTrip((t) => (t ? { ...t, path: [...t.path, [x0, y0]], closed: true } : t));
+        }
         setWalking(false);
         return;
       }
@@ -269,12 +310,25 @@ export default function Equipotentials({ page }) {
         return;
       }
       drag.current = true;
+      setDragging(true);
       setTrip({ path: [[probe.x, probe.y]] });
       return;
     }
     if (!drag.current) return;
     if (phase === 'up') {
       drag.current = false;
+      setDragging(false);
+      // Ending close to the start snaps the mass back onto it: a closed
+      // route, so ΔV and the work done are exactly zero.
+      if (trip && trip.path.length > 2 && pathLength > 1) {
+        const [x0, y0] = trip.path[0];
+        const [sx, sy] = v.toPx(x0, y0);
+        const [ex, ey] = v.toPx(probe.x, probe.y);
+        if (Math.hypot(ex - sx, ey - sy) < SNAP_PX) {
+          setProbe({ x: x0, y: y0 });
+          setTrip({ ...trip, path: [...trip.path, [x0, y0]], closed: true });
+        }
+      }
       return;
     }
     // stay outside the bodies
@@ -309,10 +363,14 @@ export default function Equipotentials({ page }) {
         }}
         onPointerMove={(e) => onPointer(e, 'move')}
         onPointerUp={(e) => onPointer(e, 'up')}
+        onPointerCancel={(e) => onPointer(e, 'up')}
       >
         <canvas ref={canvasRef} role="img" aria-label="Equipotential lines and field lines around a planet, with a test mass" />
       </div>
-      <p className="stage-note">Drag the test mass m. Its route is drawn as you go.</p>
+      <p className="stage-note">
+        Drag the test mass m. Its route is drawn as you go. Bring it back to the start and let go
+        to close the loop.
+      </p>
     </>
   );
 
@@ -372,7 +430,7 @@ export default function Equipotentials({ page }) {
         </Eq>
         <Readouts>
           <Readout
-            label="Work done on the mass"
+            label="Work done by you, against gravity"
             value={trip && trip.path.length > 1 ? sci(work) : '—'}
             unit={trip && trip.path.length > 1 ? 'J' : ''}
             tone={COLORS.coral}
@@ -387,7 +445,8 @@ export default function Equipotentials({ page }) {
         </Readouts>
         <p style={{ marginTop: 10 }}>
           Take two different routes between the same two equipotentials: the work done is the
-          same. Only the start and end potentials matter.
+          same. Only the start and end potentials matter. Finish where you started and the work
+          done is zero, however far you went.
         </p>
       </Section>
 
@@ -398,8 +457,9 @@ export default function Equipotentials({ page }) {
           else.
         </li>
         <li>
-          Moving a mass <V>m</V> through a potential difference Δ<V>V</V> takes work Δ<V>W</V> = <V>m</V>Δ<V>V</V>,
-          whatever the route.
+          Moving a mass <V>m</V> through a potential difference Δ<V>V</V> takes
+          <br />
+          work Δ<V>W</V> = <V>m</V>Δ<V>V</V>, whatever the route.
         </li>
         <li>
           An equipotential joins points of equal potential. No work is done moving along one.
@@ -415,10 +475,11 @@ export default function Equipotentials({ page }) {
       <TryThis>
         <li>Walk along an equipotential. Why is the work done zero, even though gravity acts all the way round?</li>
         <li>Drag the mass from one equipotential to the next one out. How much work is that for 1 kg?</li>
-        <li>With a moon, find the place between the bodies where the field lines pull in opposite directions.</li>
+        <li>Drag the mass on a long detour and bring it back to the start. What is the total work done?</li>
+        <li>With a moon, find the place between the bodies where the two pulls cancel.</li>
       </TryThis>
     </>
   );
 
-  return <PageLayout page={page} stage={stage} legend={legend} legendPlace="bottom" panel={panel} />;
+  return <PageLayout page={page} stage={stage} legend={legend} legendPlace="bottom" panel={panel} stageClass="is-tall" notesWide />;
 }

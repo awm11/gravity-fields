@@ -33,6 +33,11 @@ export function createStage(host, {
   const camera = new THREE.PerspectiveCamera(fov, 1, 0.05, 500);
 
   const view = { theta, phi, radius, target: target.clone() };
+  // set lock.on while a page drags an object itself, so the view stays put
+  const lock = { on: false };
+  // how quickly the camera glides to a new view (higher is faster); a page
+  // can lower it for a slow, deliberate move
+  const motion = { ease: 10 };
   // A smoothed copy the camera actually uses, so programmatic moves glide.
   const shown = { theta, phi, radius, target: target.clone() };
 
@@ -79,6 +84,7 @@ export function createStage(host, {
     const dy = e.clientY - p.y;
     p.x = e.clientX;
     p.y = e.clientY;
+    if (lock.on) return;
     if (pointers.size === 1) {
       view.theta -= dx * 0.008;
       view.phi = Math.min(maxPhi, Math.max(minPhi, view.phi - dy * 0.008));
@@ -113,7 +119,7 @@ export function createStage(host, {
     const dt = Math.min(0.05, (t - last) / 1000);
     last = t;
     // ease the shown camera towards the requested view
-    const k = 1 - Math.exp(-dt * 10);
+    const k = 1 - Math.exp(-dt * motion.ease);
     shown.theta += (view.theta - shown.theta) * k;
     shown.phi += (view.phi - shown.phi) * k;
     shown.radius += (view.radius - shown.radius) * k;
@@ -131,6 +137,8 @@ export function createStage(host, {
     camera,
     renderer,
     view,
+    lock,
+    motion,
     onFrame(f) {
       callbacks.add(f);
       return () => callbacks.delete(f);

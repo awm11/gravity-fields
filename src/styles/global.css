@@ -113,12 +113,40 @@ button {
 }
 
 .frac-n {
+  /* stretch, so the bar spans the wider of numerator and denominator */
+  align-self: stretch;
+  text-align: center;
   padding: 0 0.2em 0.06em;
   border-bottom: 1px solid currentColor;
 }
 
 .frac-d {
   padding: 0.06em 0.2em 0;
+}
+
+.sqrt {
+  display: inline-flex;
+  align-items: stretch;
+  vertical-align: middle;
+  margin: 0 0.1em;
+}
+
+.sqrt-sign {
+  flex: none;
+  width: 0.62em;
+  height: auto;
+  overflow: visible;
+}
+
+.sqrt-body {
+  display: inline-flex;
+  align-items: center;
+  border-top: 1px solid currentColor;
+  padding: 0.12em 0.15em 0 0.08em;
+}
+
+.sqrt .frac {
+  font-size: 0.86em;
 }
 
 /* ------------------------------------------------------------------ */
@@ -139,14 +167,49 @@ button {
   backdrop-filter: blur(8px);
 }
 
+.topbar {
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.topbar.is-hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
-  gap: 10px;
-  text-decoration: none;
+  gap: 12px;
   font-family: var(--serif);
   font-size: 19px;
   font-weight: 500;
+}
+
+.brand-title {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* the logo tips a little to the right when pointed at */
+.brand-mark {
+  flex: none;
+  display: block;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.brand-mark img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.brand-mark:hover,
+.brand-mark:focus-visible {
+  transform: scale(1.1) rotate(8deg);
 }
 
 .topbar-nav {
@@ -336,6 +399,10 @@ button {
   height: clamp(300px, 46vh, 520px);
 }
 
+.stage.is-tall {
+  height: clamp(460px, 80vh, 900px);
+}
+
 .stage canvas {
   display: block;
 }
@@ -492,27 +559,65 @@ button {
 
 .foot-link {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 12px 14px;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
   border: 1px solid var(--rule);
   border-radius: var(--radius);
+  background: var(--raised);
+  color: var(--text);
   text-decoration: none;
-  font-family: var(--serif);
-  font-size: 20px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.25);
+  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
 }
 
-.foot-link span {
-  font-family: var(--sans);
+.foot-link:hover,
+.foot-link:focus-visible {
+  border-color: var(--brass);
+  background: #1a2440;
+  transform: translateY(-2px);
+}
+
+.foot-link:active {
+  transform: translateY(0);
+}
+
+.foot-arrow {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 1.5px solid var(--brass-deep);
+  color: var(--brass);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.foot-link:hover .foot-arrow {
+  background: var(--brass);
+  color: var(--ink);
+}
+
+.foot-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.foot-kicker {
   font-size: 13px;
   color: var(--text-3);
 }
 
-.foot-link:hover {
-  border-color: var(--brass-deep);
+.foot-title {
+  font-family: var(--serif);
+  font-size: 20px;
 }
 
 .foot-link.is-next {
+  flex-direction: row-reverse;
   text-align: right;
 }
 
@@ -1320,6 +1425,10 @@ button {
     height: clamp(340px, 58svh, 560px);
   }
 
+  .stage.is-tall {
+    height: clamp(420px, 74svh, 720px);
+  }
+
   .toc-section {
     grid-template-columns: minmax(0, 1fr);
     gap: 8px;
@@ -1327,8 +1436,12 @@ button {
 }
 
 @media (max-width: 560px) {
-  .brand span {
+  .brand-title {
     display: none;
+  }
+
+  .site-foot .coffee-embed-frame {
+    --coffee-scale: 0.6;
   }
 
   .step-count {
@@ -1353,6 +1466,7 @@ button {
   }
 
   .foot-link.is-next {
+    flex-direction: row;
     text-align: left;
   }
 
@@ -1392,5 +1506,412 @@ button {
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+  }
+}
+
+/* Dragging across a graph or stage must not select its labels. */
+.plot svg,
+.stage {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.study-tip {
+  margin: 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--brass);
+  background: rgba(227, 178, 91, 0.07);
+  border-radius: 0 8px 8px 0;
+}
+
+.frac-d .sqrt {
+  margin-top: 0.3em;
+}
+
+/* pictures with credits (Cavendish page) */
+.picture-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.picture {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.picture-frame {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 180px;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  background: #f4f1ea;
+  overflow: hidden;
+}
+
+.picture-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 300px;
+  object-fit: contain;
+}
+
+.picture-missing {
+  padding: 16px;
+  color: #3d434f;
+  font-size: 14px;
+  text-align: center;
+}
+
+.picture figcaption {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.picture-credit {
+  color: var(--text-3);
+  font-size: 12px;
+}
+
+.picture-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12px;
+}
+
+/* a hint under a slider must clear the labels of its marks */
+.slider:has(.slider-mark) .slider-hint {
+  margin-top: 20px !important;
+}
+
+/* site footer: home link on the left, Buy me a coffee bottom right */
+.site-foot {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) minmax(0, 2fr) auto;
+  grid-template-areas: 'brand nav coffee';
+  align-items: center;
+  gap: 16px 24px;
+  max-width: 1480px;
+  margin: 0 auto;
+  padding: 20px var(--gutter) 32px;
+  border-top: 1px solid var(--rule-soft);
+  font-size: 14px;
+}
+
+.site-foot-brand {
+  grid-area: brand;
+}
+
+.site-foot-nav {
+  grid-area: nav;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.site-foot-coffee {
+  grid-area: coffee;
+  justify-self: end;
+}
+
+/* the home page has no previous/next: the brand takes the room */
+.site-foot:not(:has(.site-foot-nav)) {
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'brand coffee';
+}
+
+@media (max-width: 1100px) {
+  .site-foot {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'nav nav'
+      'brand coffee';
+  }
+}
+
+@media (max-width: 560px) {
+  .site-foot {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'nav'
+      'brand'
+      'coffee';
+  }
+
+  .site-foot-nav {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .site-foot-coffee {
+    justify-self: start;
+  }
+}
+
+.site-foot > a {
+  color: var(--text-3);
+}
+
+/* The embed is a fixed 250 × 60 document, so it is scaled as a whole and
+   the frame clips to the scaled size. */
+.coffee-embed-frame {
+  --coffee-scale: 0.72;
+  display: block;
+  flex: none;
+  width: calc(250px * var(--coffee-scale));
+  height: calc(60px * var(--coffee-scale));
+  overflow: hidden;
+  border-radius: 10px;
+  background: #ffdd00;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.38);
+  transition: transform 0.15s ease;
+}
+
+.coffee-embed-frame:hover {
+  transform: translateY(-1px);
+}
+
+.coffee-embed {
+  display: block;
+  width: 250px;
+  height: 60px;
+  border: 0;
+  transform: scale(var(--coffee-scale));
+  transform-origin: 0 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* Page layout: controls at the side, explanation under the stage      */
+/* ------------------------------------------------------------------ */
+
+.page-body {
+  grid-template-areas:
+    'main panel'
+    'notes panel';
+}
+
+.page-main {
+  grid-area: main;
+}
+
+/* the controls stay in view while the page scrolls past the graphs and notes */
+.panel {
+  grid-area: panel;
+  position: sticky;
+  top: 72px;
+  max-height: calc(100vh - 84px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 4px;
+  scrollbar-width: thin;
+}
+
+.page-notes {
+  grid-area: notes;
+  columns: 320px;
+  column-gap: 16px;
+}
+
+.page-notes > .panel-section {
+  break-inside: avoid;
+  margin: 0 0 16px;
+  padding: 14px 16px 6px;
+  border: 1px solid var(--rule-soft);
+  border-radius: var(--radius);
+  background: rgba(9, 13, 25, 0.45);
+}
+
+.page-notes > .panel-section:first-child {
+  padding-top: 14px;
+  border-top: 1px solid var(--rule-soft);
+}
+
+@media (max-width: 860px) {
+  .page-body {
+    grid-template-areas:
+      'main'
+      'panel'
+      'notes';
+  }
+
+  .panel {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
+}
+
+/* pages whose notes (Key ideas, Try this) share the width under the stage
+   equally, side by side (the side panel keeps its own column) */
+.page-body.has-wide-notes .page-notes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
+  columns: auto;
+}
+
+.page-body.has-wide-notes .page-notes > .panel-section {
+  margin: 0;
+}
+
+
+/* site footer */
+.site-foot-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+}
+
+.site-foot-brand img {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.site-foot-brand a:hover img {
+  transform: scale(1.1) rotate(8deg);
+}
+
+.site-foot-brand p {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 14px;
+  max-width: 52ch;
+}
+
+.site-foot-brand strong {
+  display: block;
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: 18px;
+  color: var(--text);
+}
+
+/* side panel modes (see SidePanel) */
+.panel-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.panel.is-long {
+  position: static;
+  max-height: none;
+  overflow: visible;
+}
+
+/* a "Did you know?" note that opens on hover or focus */
+.info-tip {
+  position: relative;
+  display: inline-flex;
+}
+
+.info-tip > button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--sky);
+  font: inherit;
+  font-size: 12px;
+  cursor: help;
+}
+
+.info-tip-bubble {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  top: calc(100% + 8px);
+  width: min(280px, 80vw);
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 10px;
+  background: var(--raised);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  color: var(--text-2);
+  font-size: 13.5px;
+  line-height: 1.45;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s;
+}
+
+.info-tip:hover .info-tip-bubble,
+.info-tip:focus-within .info-tip-bubble {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+}
+
+.info-tip-bubble strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.slider-aside {
+  margin-top: 6px;
+}
+
+.info-tip > button {
+  white-space: nowrap;
+}
+
+/* a time-lapse rate shown prominently on a stage */
+.speed-box {
+  position: absolute;
+  left: 12px;
+  top: 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 8px;
+  border: 1px solid var(--brass-deep);
+  border-radius: 7px;
+  background: rgba(9, 13, 25, 0.82);
+  pointer-events: none;
+}
+
+.speed-box-rate {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--brass);
+  font-variant-numeric: tabular-nums;
+}
+
+.speed-box-note {
+  font-size: 11px;
+  color: var(--text-2);
+}
+
+@media (max-width: 560px) {
+  .speed-box {
+    padding: 4px 7px;
+  }
+
+  .speed-box-rate {
+    font-size: 12px;
+  }
+
+  .speed-box-note {
+    font-size: 10.5px;
   }
 }

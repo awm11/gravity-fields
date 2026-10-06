@@ -75,6 +75,7 @@ export function Plot({
         style={{ touchAction: onPointer ? 'none' : 'auto', cursor: onPointer ? 'crosshair' : 'default' }}
         onPointerDown={(e) => {
           if (!onPointer) return;
+          e.preventDefault(); // no text selection while dragging
           dragging.current = true;
           e.currentTarget.setPointerCapture(e.pointerId);
           report(e, 'down');

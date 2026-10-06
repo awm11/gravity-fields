@@ -116,7 +116,7 @@ export const PAGES = [
     title: 'Circular orbits',
     short: 'Circular orbits',
     summary:
-      'Gravity provides the centripetal force. Further out, orbits are slower and longer, and one radius gives exactly one day.',
+      'Gravity provides the centripetal force. Further out, orbits are slower and longer, and one radius gives exactly one (sidereal) day.',
     glyph: 'orbits',
   },
   {
@@ -133,23 +133,23 @@ export const PAGES = [
   {
     path: '/cavendish',
     section: 'measure',
-    spec: '3.7.2.1',
-    specTitle: 'Background to G',
+    spec: 'Background',
+    specTitle: '',
     title: "Cavendish's experiment",
     short: 'Cavendish',
     summary:
-      'In 1798 Henry Cavendish measured the pull between lead balls with a twisting wire, and found the value of G.',
+      'In 1798 Henry Cavendish measured the pull between lead balls with a twisting wire, and from it found the density of the Earth.',
     glyph: 'cavendish',
   },
   {
     path: '/schiehallion',
     section: 'measure',
-    spec: '3.7.2.2',
-    specTitle: 'Background to g',
+    spec: 'Background',
+    specTitle: '',
     title: 'Schiehallion',
     short: 'Schiehallion',
     summary:
-      'In 1774 a Scottish mountain pulled plumb lines a few seconds of arc aside, and gave the first estimate of the density of the Earth.',
+      'In 1774 a Scottish mountain pulled plumb lines a few seconds of arc aside, and gave the first measurement of the density of the Earth.',
     glyph: 'mountain',
   },
 ];
