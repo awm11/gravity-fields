@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { PageLayout } from '../components/Shell.jsx';
 import { Controls, KeyIdeas, Legend, Readout, Readouts, Section, Segmented, Slider, Switch, TryThis } from '../components/ui.jsx';
-import { Eq, Frac, V } from '../components/Eq.jsx';
+import { Eq, Frac, Nw, V } from '../components/Eq.jsx';
 import { Plot } from '../components/Plot.jsx';
 import { useCanvas } from '../lib/useCanvas.js';
 import { COLORS, SERIF, arrow, body, label, stars } from '../lib/draw.js';
@@ -149,7 +149,7 @@ export default function Orbits({ page }) {
       ctx.moveTo(w - 16, h - 22);
       ctx.lineTo(w - 16, h - 14);
       ctx.stroke();
-      label(ctx, `${grouped(barKm)} km`, w - 16 - barPx / 2, h - 32, { align: 'center', size: 12, color: COLORS.text3 });
+      label(ctx, `${grouped(barKm)} km`, w - 16 - barPx / 2, h - 32, { align: 'center', size: 12, color: COLORS.text3 });
 
       if (isGeo) {
         label(ctx, 'Geostationary: it stays above the same point on the Earth', 14, h - 18, { size: 13, color: COLORS.brass });
@@ -171,11 +171,11 @@ export default function Orbits({ page }) {
 
   const stage = (
     <>
-      <canvas ref={canvasRef} role="img" aria-label={`A satellite orbiting the Earth at radius ${grouped(r / 1000)} km, period ${duration(T)}`} />
+      <canvas ref={canvasRef} role="img" aria-label={`A satellite orbiting the Earth at radius ${grouped(r / 1000)} km, period ${duration(T)}`} />
       <p className="stage-note">Seen from below the South Pole, to scale.</p>
       <div className="speed-box" aria-live="polite">
         <span className="speed-box-rate">{grouped(Number(warp.toPrecision(3)))}× speed</span>
-        <span className="speed-box-note">1 second here is {duration(warp)} of real time</span>
+        <span className="speed-box-note">1 second here is {duration(warp)} of real time</span>
       </div>
     </>
   );
@@ -189,7 +189,7 @@ export default function Orbits({ page }) {
       <div className="figure">
         <div className="figure-head">
           <h3>Period against radius, on log scales</h3>
-          <p>A straight line of gradient 1.5, because <V>T</V>² ∝ <V>r</V>³.</p>
+          <p>A straight line of gradient 1.5, because <Nw><V>T</V>² ∝ <V>r</V>³</Nw>.</p>
         </div>
         <Plot
           x={[X0, X1]}
@@ -257,15 +257,15 @@ export default function Orbits({ page }) {
                     {p.name}
                   </button>
                 </th>
-                <td>{grouped(p.r / 1000)} km</td>
-                <td>{sig(orbitalSpeed(EARTH.M, p.r) / 1000, 3)} km s⁻¹</td>
+                <td>{grouped(p.r / 1000)} km</td>
+                <td>{sig(orbitalSpeed(EARTH.M, p.r) / 1000, 3)} km s⁻¹</td>
                 <td>{duration(orbitalPeriod(EARTH.M, p.r))}</td>
               </tr>
             ))}
           </tbody>
         </table>
         <p className="plot-caption">
-          The Moon&rsquo;s real period is 27.3 days. The model ignores the Moon&rsquo;s pull on the Earth and the Sun&rsquo;s on both.
+          The Moon&rsquo;s real period is 27.3 days. The model ignores the Moon&rsquo;s pull on the Earth and the Sun&rsquo;s on both.
         </p>
       </div>
     </div>
@@ -288,7 +288,7 @@ export default function Orbits({ page }) {
             max={LOG_MAX}
             step={0.001}
             onChange={setLogR}
-            display={`${grouped(r / 1000)} km`}
+            display={`${grouped(r / 1000)} km`}
             marks={[{ value: Math.log10(GEO_R), label: 'geostationary' }]}
           />
           <Switch label="Show a ground station" checked={showStation} onChange={setShowStation} />
@@ -299,10 +299,10 @@ export default function Orbits({ page }) {
         <Readouts>
           <Readout label="Height above the surface" value={grouped(altitude / 1000)} unit="km" />
           <Readout label="Radius r" value={sci(r)} unit="m" />
-          <Readout label="Speed v" value={sig(v / 1000, 3)} unit="km s⁻¹" tone={COLORS.text} />
+          <Readout label="Speed v" value={sig(v / 1000, 3)} unit="km s⁻¹" tone={COLORS.text} />
           <Readout label="Period T" value={duration(T)} tone={isGeo ? COLORS.brass : undefined} />
-          <Readout label="Field strength there" value={sig((G * EARTH.M) / (r * r), 3)} unit="N kg⁻¹" tone={COLORS.sky} />
-          <Readout label="T² / r³" value={sci((T * T) / r ** 3)} unit="s² m⁻³" />
+          <Readout label="Field strength there" value={sig((G * EARTH.M) / (r * r), 3)} unit="N kg⁻¹" tone={COLORS.sky} />
+          <Readout label="T² / r³" value={sci((T * T) / r ** 3)} unit="s² m⁻³" />
           <Readout label="One orbit on screen takes" value={sig(screenPeriod, 2)} unit="s" wide />
         </Readouts>
       </Section>
@@ -310,11 +310,11 @@ export default function Orbits({ page }) {
       <Section title="Why T² ∝ r³">
         <p>Gravity provides the centripetal force:</p>
         <Eq block>
-          <Frac n={<><V>GMm</V></>} d={<><V>r</V>²</>} /> = <Frac n={<><V>mv</V>²</>} d={<V>r</V>} /> &nbsp;⇒&nbsp; <V>v</V> = √(<V>GM</V>/<V>r</V>)
+          <Nw><Frac n={<><V>GMm</V></>} d={<><V>r</V>²</>} /> = <Frac n={<><V>mv</V>²</>} d={<V>r</V>} /></Nw> <Nw>⇒&nbsp; <V>v</V> = √(<V>GM</V>/<V>r</V>)</Nw>
         </Eq>
-        <p>One orbit is 2π<V>r</V> long, so</p>
+        <p>One orbit is <Nw>2π<V>r</V></Nw> long, so</p>
         <Eq block>
-          <V>T</V> = <Frac n={<>2π<V>r</V></>} d={<V>v</V>} /> &nbsp;⇒&nbsp; <V>T</V>² = <Frac n={<>4π²</>} d={<V>GM</V>} /> <V>r</V>³
+          <Nw><V>T</V> = <Frac n={<>2π<V>r</V></>} d={<V>v</V>} /></Nw> <Nw>⇒&nbsp; <V>T</V>² = <Frac n={<>4π²</>} d={<V>GM</V>} /> <V>r</V>³</Nw>
         </Eq>
         <p>
           The satellite&rsquo;s mass cancels: any object at this radius orbits at the same speed.
@@ -323,12 +323,11 @@ export default function Orbits({ page }) {
 
       <KeyIdeas>
         <li>
-          Further out, orbits are slower and take longer: <V>v</V> ∝ 1/√<V>r</V> and <V>T</V> ∝ <V>r</V>
-          <sup>3/2</sup>.
+          Further out, orbits are slower and take longer: <Nw><V>v</V> ∝ 1/√<V>r</V></Nw> and <Nw><V>T</V> ∝ <V>r</V><sup>3/2</sup></Nw>.
         </li>
         <li>
           A synchronous orbit has a period equal to the time the planet takes to turn once. For
-          the Earth that is 23 h 56 min, at a radius of 42 200 km.
+          the Earth that is <Nw>23 h 56 min</Nw>, at a radius of 42 200 km.
         </li>
         <li>
           A geostationary satellite is in a synchronous orbit over the equator, moving the same
@@ -336,7 +335,7 @@ export default function Orbits({ page }) {
           it without moving: ideal for television and weather pictures.
         </li>
         <li>
-          Low orbits, a few hundred kilometres up, take about 90 minutes. They are close enough
+          Low orbits, a few hundred kilometres up, take about 90 minutes. They are close enough
           for detailed imaging, but each satellite is overhead only briefly.
         </li>
       </KeyIdeas>

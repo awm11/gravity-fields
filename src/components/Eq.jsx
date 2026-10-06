@@ -7,6 +7,15 @@
 
 export const V = ({ children }) => <i className="q">{children}</i>;
 
+/** Keeps an equation (or a number with its unit) together on one line. */
+export const Nw = ({ children }) => <span className="nw">{children}</span>;
+
+/**
+ * A longer equation made of <Nw> pieces: it moves to a new line as a whole
+ * when that lets it fit, and only splits between pieces on narrow screens.
+ */
+export const EqLine = ({ children }) => <span className="eq-line">{children}</span>;
+
 export const Frac = ({ n, d }) => (
   <span className="frac">
     <span className="frac-n">{n}</span>
@@ -47,13 +56,13 @@ export const Q = {
 
 /** Units with proper superscripts. */
 export const unit = {
-  Nkg: 'N kg⁻¹',
-  Jkg: 'J kg⁻¹',
-  MJkg: 'MJ kg⁻¹',
+  Nkg: 'N kg⁻¹',
+  Jkg: 'J kg⁻¹',
+  MJkg: 'MJ kg⁻¹',
   N: 'N',
   J: 'J',
   m: 'm',
   km: 'km',
-  ms: 'm s⁻¹',
-  kms: 'km s⁻¹',
+  ms: 'm s⁻¹',
+  kms: 'km s⁻¹',
 };

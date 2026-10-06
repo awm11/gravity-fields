@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { PageLayout } from '../components/Shell.jsx';
 import { Button, Controls, KeyIdeas, Legend, Readout, Readouts, Section, Segmented, Slider, TryThis } from '../components/ui.jsx';
-import { Eq, Frac, V } from '../components/Eq.jsx';
+import { Eq, Frac, Nw, V } from '../components/Eq.jsx';
 import { Plot } from '../components/Plot.jsx';
 import { useCanvas } from '../lib/useCanvas.js';
 import { COLORS, arrow, body, label } from '../lib/draw.js';
@@ -351,7 +351,7 @@ export default function Cavendish({ page }) {
       ctx.beginPath();
       ctx.arc(scaleX, spotY, 12, 0, Math.PI * 2);
       ctx.fill();
-      label(ctx, `screen ${D} m away`, scaleX, Math.min(h - 12, zeroY + 30 * mmPx + 18), { size: 11, color: COLORS.text3, align: 'center' });
+      label(ctx, `screen ${D} m away`, scaleX, Math.min(h - 12, zeroY + 30 * mmPx + 18), { size: 11, color: COLORS.text3, align: 'center' });
     },
     [bigM, place, still],
     { animate: true },
@@ -461,7 +461,7 @@ export default function Cavendish({ page }) {
             max={300}
             step={1}
             onChange={setBigM}
-            display={`${bigM} kg`}
+            display={`${bigM} kg`}
             marks={[{ value: 158, label: 'Cavendish' }]}
           />
           <div className="row">
@@ -482,29 +482,30 @@ export default function Cavendish({ page }) {
       <Section title="Finding G">
         <ol className="steps">
           <li>
-            Swinging the balls from A to B moves the resting spot by Δ<V>s</V> = {sig(shift, 3)} mm. That is
-            4<V>D</V>θ, so θ = {sci(thetaFromShift)} rad.
+            Swinging the balls from A to B moves the resting spot by <Nw>Δ<V>s</V> = {sig(shift, 3)} mm</Nw>. That is
+            4<V>D</V>θ, so <Nw>θ = {sci(thetaFromShift)} rad</Nw>.
           </li>
           <li>
-            The period gives the wire&rsquo;s stiffness: κ = 4π²<V>I</V>/<V>T</V>², with <V>I</V> = <V>mL</V>²/2.
+            The period gives the wire&rsquo;s stiffness: <Nw>κ = 4π²<V>I</V>/<V>T</V>²</Nw>, with <Nw><V>I</V> = <V>mL</V>²/2</Nw>.
           </li>
           <li>
-            At rest the torques balance: 2 × <V>F</V> × <V>L</V>/2 = κθ, with <V>F</V> = <V>GMm</V>/<V>r</V>².
+            At rest the torques balance: <Nw>2 × <V>F</V> × <V>L</V>/2 = κθ</Nw>, with <Nw><V>F</V> = <V>GMm</V>/<V>r</V>²</Nw>.
           </li>
         </ol>
         <Eq block>
-          <V>G</V> = <Frac n={<>2π²<V>r</V>²<V>L</V>θ</>} d={<><V>MT</V>²</>} /> = {sci(Gfound)} N m² kg⁻²
+          <Nw><V>G</V> = <Frac n={<>2π²<V>r</V>²<V>L</V>θ</>} d={<><V>MT</V>²</>} /></Nw>{' '}
+          <Nw>= {sci(Gfound)} N m² kg⁻²</Nw>
         </Eq>
         <p>
-          With <V>r</V> = {R_SEP * 100} cm, <V>L</V> = {L} m, <V>M</V> = {bigM} kg and
+          With <Nw><V>r</V> = {R_SEP * 100} cm</Nw>, <Nw><V>L</V> = {L} m</Nw>, <Nw><V>M</V> = {bigM} kg</Nw> and
           <br />
-          <V>T</V> = {T} s. The small mass cancels.
+          <Nw><V>T</V> = {T} s</Nw>. The small mass cancels.
         </p>
       </Section>
 
       <KeyIdeas>
         <li>
-          The pull between the balls is about {sci(force, 2)} N: roughly the weight of one grain
+          The pull between the balls is about {sci(force, 2)} N: roughly the weight of one grain
           of sand. A long, thin wire twists a measurable amount under so small a torque.
         </li>
         <li>
@@ -513,9 +514,9 @@ export default function Cavendish({ page }) {
         </li>
         <li>
           Cavendish reported his result as the density of the Earth: 5.48 times that of water. In
-          modern terms, that is the same as measuring <V>G</V>: it gives <V>G</V> ≈ 6.7 × 10⁻¹¹ N m² kg⁻²
-          (today&rsquo;s value is 6.674 × 10⁻¹¹), and then <V>g</V> = <V>GM</V>/<V>R</V>² gives the
-          Earth&rsquo;s mass, <V>M</V> = <V>gR</V>²/<V>G</V> = {sci((9.81 * EARTH.R ** 2) / G)} kg.
+          modern terms, that is the same as measuring <V>G</V>: it gives <Nw><V>G</V> ≈ 6.7 × 10⁻¹¹ N m² kg⁻²</Nw>
+          (today&rsquo;s value is 6.674 × 10⁻¹¹), and then <Nw><V>g</V> = <V>GM</V>/<V>R</V>²</Nw> gives the
+          Earth&rsquo;s mass, <Nw><V>M</V> = <V>gR</V>²/<V>G</V> = {sci((9.81 * EARTH.R ** 2) / G)} kg</Nw>.
         </li>
       </KeyIdeas>
 

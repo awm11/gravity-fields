@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Nw } from '../components/Eq.jsx';
 import { PAGES, SECTIONS, SPEC_MAP, pageByPath } from './registry.js';
 import { hrefFor } from '../lib/router.js';
 import { useCanvas, localPoint } from '../lib/useCanvas.js';
@@ -251,7 +252,7 @@ export default function Home() {
         </section>
 
         <p className="home-foot">
-          Values use G = 6.674 × 10⁻¹¹ N m² kg⁻². Diagrams are not to scale unless they say so.
+          Values use <Nw>G = 6.674 × 10⁻¹¹ N m² kg⁻²</Nw>. Diagrams are not to scale unless they say so.
         </p>
       </div>
     </>

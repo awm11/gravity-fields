@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { PageLayout } from '../components/Shell.jsx';
 import { Controls, KeyIdeas, Readout, Readouts, Section, Segmented, Slider, TryThis } from '../components/ui.jsx';
-import { Eq, Frac, V } from '../components/Eq.jsx';
+import { Eq, Frac, Nw, V } from '../components/Eq.jsx';
 import { Plot, fnPath } from '../components/Plot.jsx';
 import { useCanvas, localPoint } from '../lib/useCanvas.js';
 import { COLORS, SANS, SERIF, arrow, body, label } from '../lib/draw.js';
@@ -14,7 +14,7 @@ const PRESETS = {
     a: { name: 'Person A', m: 60, kind: 'mass', massLabel: 'Mass of person A' },
     b: { name: 'Person B', m: 70, kind: 'mass', massLabel: 'Mass of person B' },
     r0: 1, // separations in metres
-    dist: (q) => ({ main: `${sig(q, 3)} m` }),
+    dist: (q) => ({ main: `${sig(q, 3)} m` }),
     axis: 'r / m',
   },
   cavendish: {
@@ -22,7 +22,7 @@ const PRESETS = {
     a: { name: 'Large lead ball', m: 158, kind: 'lead', massLabel: 'Mass of the large ball' },
     b: { name: 'Small lead ball', m: 0.73, kind: 'lead', massLabel: 'Mass of the small ball' },
     r0: 0.2, // grid lines every 20 cm
-    dist: (q) => ({ main: `${sig(q * 20, 3)} cm` }),
+    dist: (q) => ({ main: `${sig(q * 20, 3)} cm` }),
     axis: 'r / cm',
     axisScale: 20,
   },
@@ -31,9 +31,9 @@ const PRESETS = {
     a: { name: 'Earth', m: 5.972e24, kind: 'earth', massLabel: 'Mass of the Earth' },
     b: { name: 'You', m: 60, kind: 'mass', massLabel: 'Your mass' },
     r0: 6.371e6, // in Earth radii, R_E
-    dist: (q) => ({ main: `${sig(q, 3)} R`, sub: 'E' }),
+    dist: (q) => ({ main: `${sig(q, 3)} R`, sub: 'E' }),
     axis: ['r / R', 'E'],
-    hint: <>R<sub>E</sub> = 6371 km, the Earth&rsquo;s radius</>,
+    hint: <><Nw>R<sub>E</sub> = 6371 km</Nw>, the Earth&rsquo;s radius</>,
   },
   moon: {
     label: 'Earth and Moon',
@@ -42,7 +42,7 @@ const PRESETS = {
     r0: 3.844e8, // in units of Δ⊕L, the Earth–Moon distance
     dist: (q) => ({ main: `${sig(q, 3)} Δ`, sub: '⊕L' }),
     axis: ['r / Δ', '⊕L'],
-    hint: <>Δ<sub>⊕L</sub> = 384 400 km, the distance between the Earth and the Moon</>,
+    hint: <><Nw>Δ<sub>⊕L</sub> = 384 400 km</Nw>, the distance between the Earth and the Moon</>,
   },
 };
 
@@ -278,7 +278,7 @@ export default function Newton({ page }) {
             display={distNode(dist(ratio))}
             hint={preset.hint}
           />
-          <Slider label={preset.a.massLabel} value={ka} min={0.5} max={3} step={0.5} onChange={setKa} display={`× ${ka}`} />
+          <Slider label={preset.a.massLabel} value={ka} min={0.5} max={3} step={0.5} onChange={setKa} display={`× ${ka}`} />
           {isYou ? (
             <Slider
               label={preset.b.massLabel}
@@ -287,24 +287,24 @@ export default function Newton({ page }) {
               max={180}
               step={5}
               onChange={(kg) => setKb(kg / preset.b.m)}
-              display={`${Math.round(kb * preset.b.m)} kg`}
+              display={`${Math.round(kb * preset.b.m)} kg`}
             />
           ) : (
-            <Slider label={preset.b.massLabel} value={kb} min={0.5} max={3} step={0.5} onChange={setKb} display={`× ${kb}`} />
+            <Slider label={preset.b.massLabel} value={kb} min={0.5} max={3} step={0.5} onChange={setKb} display={`× ${kb}`} />
           )}
         </Controls>
       </Section>
 
       <Section title="The force">
         <Eq block>
-          <V>F</V> = <Frac n={<><V>G</V><V>m</V><sub>1</sub><V>m</V><sub>2</sub></>} d={<><V>r</V><sup>2</sup></>} />
+          <Nw><V>F</V> = <Frac n={<><V>G</V><V>m</V><sub>1</sub><V>m</V><sub>2</sub></>} d={<><V>r</V><sup>2</sup></>} /></Nw>
         </Eq>
         <Readouts>
           <Readout label="Force on each mass" value={sci(F)} unit="N" tone={COLORS.coral} wide />
           <Readout label="m₁" value={sci(m1)} unit="kg" tone={COLORS.brass} />
           <Readout label="m₂" value={sci(m2)} unit="kg" tone={COLORS.brass} />
           <Readout label="r" value={sci(r)} unit="m" />
-          <Readout label="Compared with F₀" value={`× ${sig(relative, 3)}`} />
+          <Readout label="Compared with F₀" value={`× ${sig(relative, 3)}`} />
         </Readouts>
       </Section>
 
@@ -323,7 +323,7 @@ export default function Newton({ page }) {
           centre to centre.
         </li>
         <li>
-          <V>G</V> = 6.67 × 10⁻¹¹ N m² kg⁻². Its tiny size is why gravity between everyday
+          <Nw><V>G</V> = 6.67 × 10⁻¹¹ N m² kg⁻²</Nw>. Its tiny size is why gravity between everyday
           objects goes unnoticed.
         </li>
       </KeyIdeas>
@@ -332,7 +332,7 @@ export default function Newton({ page }) {
         <li>Double one mass. What happens to the force? Now double both.</li>
         <li>Estimate the force between two people a metre apart. Could you ever feel it?</li>
         <li>
-          Choose Earth and you: the force is your weight. Move to 2 R<sub>E</sub> (one Earth radius up).
+          Choose Earth and you: the force is your weight. Move to <Nw>2 R<sub>E</sub></Nw> (one Earth radius up).
           What do you weigh now?
         </li>
       </TryThis>

@@ -81,6 +81,15 @@ button {
   letter-spacing: 0.01em;
 }
 
+.nw {
+  white-space: nowrap;
+}
+
+.eq-line {
+  display: inline-block;
+  max-width: 100%;
+}
+
 .eq {
   font-family: var(--serif);
   font-size: 1.08em;

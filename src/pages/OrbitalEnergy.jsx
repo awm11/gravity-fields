@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { PageLayout } from '../components/Shell.jsx';
 import { Button, Controls, KeyIdeas, Legend, Readout, Readouts, Section, Slider, TryThis } from '../components/ui.jsx';
-import { Eq, Frac, V } from '../components/Eq.jsx';
+import { Eq, Frac, Nw, V } from '../components/Eq.jsx';
 import { Plot, fnPath } from '../components/Plot.jsx';
 import { useCanvas } from '../lib/useCanvas.js';
 import { COLORS, SANS, SERIF, arrow, body, label, stars } from '../lib/draw.js';
@@ -170,7 +170,7 @@ export default function OrbitalEnergy({ page }) {
         // Labels go inside the bar, in dark text, when it is big enough;
         // otherwise just beyond its end, in the bar's colour.
         const name = b.name;
-        const value = `${sig(b.v, 3)} GJ`;
+        const value = `${sig(b.v, 3)} GJ`;
         ctx.font = `700 13px ${SANS}`;
         const nameW = ctx.measureText(name).width;
         ctx.font = `400 12px ${SANS}`;
@@ -193,7 +193,7 @@ export default function OrbitalEnergy({ page }) {
           label(ctx, value, x + bwid / 2, b.v >= 0 ? out - 14 : out + 32, { align: 'center', size: 12, color: COLORS.text2 });
         }
       });
-      if (wide) label(ctx, `Energy of the ${mass} kg satellite`, bx0, top - 24, { size: 13, color: COLORS.text2 });
+      if (wide) label(ctx, `Energy of the ${mass} kg satellite`, bx0, top - 24, { size: 13, color: COLORS.text2 });
     },
     [r1, r2, mass, rNow],
     { animate: true },
@@ -278,7 +278,7 @@ export default function OrbitalEnergy({ page }) {
               setRNow(v);
             }}
             disabled={moving}
-            display={`${sig(r1, 3)} R`}
+            display={`${sig(r1, 3)} R`}
           />
           <Slider
             label="New orbit r₂"
@@ -288,7 +288,7 @@ export default function OrbitalEnergy({ page }) {
             step={0.05}
             onChange={setR2}
             disabled={moving}
-            display={`${sig(r2, 3)} R`}
+            display={`${sig(r2, 3)} R`}
           />
           <Slider
             label="Mass of the satellite m"
@@ -298,7 +298,7 @@ export default function OrbitalEnergy({ page }) {
             step={100}
             onChange={setMass}
             disabled={moving}
-            display={`${mass} kg`}
+            display={`${mass} kg`}
           />
           <div className="row">
             <Button primary onClick={() => goTo(r2)} disabled={moving || Math.abs(rNow - r2) < 1e-3}>
@@ -314,7 +314,7 @@ export default function OrbitalEnergy({ page }) {
       <Section title="In the orbit now">
         <Readouts>
           <Readout label="Radius" value={sig(rNow, 3)} unit="R" />
-          <Readout label="Speed" value={sig(speed / 1000, 3)} unit="km s⁻¹" tone={COLORS.text} />
+          <Readout label="Speed" value={sig(speed / 1000, 3)} unit="km s⁻¹" tone={COLORS.text} />
           <Readout label="Kinetic energy" value={sig(now.ke, 3)} unit="GJ" tone={KE_COLOR} />
           <Readout label="Potential energy" value={sig(now.pe, 3)} unit="GJ" tone={PE_COLOR} />
           <Readout label="Total energy" value={sig(now.e, 3)} unit="GJ" tone={E_COLOR} />
@@ -332,21 +332,21 @@ export default function OrbitalEnergy({ page }) {
           {Math.abs(dE) < 1e-9
             ? 'Choose a different new orbit to compare.'
             : dE > 0
-              ? `Going up, the engines must supply ${sig(dE, 3)} GJ. The potential energy rises by twice that; the other half comes from kinetic energy, so the satellite ends up slower.`
-              : `Going down, the satellite must lose ${sig(-dE, 3)} GJ, yet its kinetic energy rises: it ends up faster. This is what atmospheric drag does to a low satellite.`}
+              ? `Going up, the engines must supply ${sig(dE, 3)} GJ. The potential energy rises by twice that; the other half comes from kinetic energy, so the satellite ends up slower.`
+              : `Going down, the satellite must lose ${sig(-dE, 3)} GJ, yet its kinetic energy rises: it ends up faster. This is what atmospheric drag does to a low satellite.`}
         </p>
       </Section>
 
       <Section title="The energies">
         <Eq block>
-          KE = ½<V>mv</V>² = <Frac n={<V>GMm</V>} d={<>2<V>r</V></>} />
-          &nbsp;&nbsp; PE = −<Frac n={<V>GMm</V>} d={<V>r</V>} />
+          <Nw>KE = ½<V>mv</V>² = <Frac n={<V>GMm</V>} d={<>2<V>r</V></>} /></Nw>
+          &nbsp;&nbsp; <Nw>PE = −<Frac n={<V>GMm</V>} d={<V>r</V>} /></Nw>
         </Eq>
         <Eq block>
-          <V>E</V> = KE + PE = −<Frac n={<V>GMm</V>} d={<>2<V>r</V></>} />
+          <Nw><V>E</V> = KE + PE = −<Frac n={<V>GMm</V>} d={<>2<V>r</V></>} /></Nw>
         </Eq>
         <p>
-          The kinetic energy comes from the orbit condition <V>v</V>² = <V>GM</V>/<V>r</V>.
+          The kinetic energy comes from the orbit condition <Nw><V>v</V>² = <V>GM</V>/<V>r</V></Nw>.
         </p>
       </Section>
 
@@ -365,7 +365,7 @@ export default function OrbitalEnergy({ page }) {
         </li>
         <li>
           To escape from an orbit, a satellite needs enough extra energy to raise its total to zero:
-          +<V>GMm</V>/2<V>r</V>.
+          <Nw>+<V>GMm</V>/2<V>r</V></Nw>.
         </li>
       </KeyIdeas>
 
@@ -373,7 +373,7 @@ export default function OrbitalEnergy({ page }) {
         <li>Double the radius. What happens to each of KE, PE and the total?</li>
         <li>Why does atmospheric drag make a low satellite speed up?</li>
         <li>
-          Compare the energy needed to escape from an orbit at 1.05 R with the energy needed to
+          Compare the energy needed to escape from an orbit at 1.05 R with the energy needed to
           escape from the ground.
         </li>
       </TryThis>

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { PageLayout } from '../components/Shell.jsx';
 import { Button, Controls, KeyIdeas, Legend, Readout, Readouts, Section, Slider, Switch, TryThis } from '../components/ui.jsx';
-import { Eq, V } from '../components/Eq.jsx';
+import { Eq, Nw, V } from '../components/Eq.jsx';
 import { Plot, fnPath } from '../components/Plot.jsx';
 import { createStage, webglAvailable } from '../lib/threeStage.js';
 import { COLORS } from '../lib/draw.js';
@@ -231,10 +231,10 @@ export default function PotentialWell({ page }) {
           const kms = sig((Math.sqrt(v2) * SPEED_UNIT) / 1000, 3);
           ended = {
             text: zero
-              ? `Reached the edge of the sheet at ${kms} km s⁻¹. Its total energy, ½v² + V, is zero: it would keep going for ever, slowing towards zero speed as it heads for infinity.`
+              ? `Reached the edge of the sheet at ${kms} km s⁻¹. Its total energy, ½v² + V, is zero: it would keep going for ever, slowing towards zero speed as it heads for infinity.`
               : E > 0
-                ? `Reached the edge of the sheet at ${kms} km s⁻¹. Its total energy, ½v² + V, is positive, so it would never come back: it has escaped.`
-                : `Reached the edge of the sheet at ${kms} km s⁻¹. Its total energy, ½v² + V, is still negative, so beyond the sheet it would slow, stop and fall back.`,
+                ? `Reached the edge of the sheet at ${kms} km s⁻¹. Its total energy, ½v² + V, is positive, so it would never come back: it has escaped.`
+                : `Reached the edge of the sheet at ${kms} km s⁻¹. Its total energy, ½v² + V, is still negative, so beyond the sheet it would slow, stop and fall back.`,
             keep: true,
           };
         }
@@ -593,7 +593,7 @@ export default function PotentialWell({ page }) {
   const legend = (
     <Legend
       items={[
-        { label: `Equipotentials, ${STEP_MJ} MJ kg⁻¹ apart`, color: COLORS.sage },
+        { label: `Equipotentials, ${STEP_MJ} MJ kg⁻¹ apart`, color: COLORS.sage },
         { label: 'Downhill: the field', color: COLORS.sky, kind: 'arrow' },
         { label: 'Marble’s path', color: COLORS.coral },
         ...(cutaway ? [{ label: 'Cut edge: the graph of V', color: COLORS.brass }] : []),
@@ -628,7 +628,7 @@ export default function PotentialWell({ page }) {
         y={[-100, 0]}
         height={230}
         xLabel="distance / R"
-        yLabel="V / MJ kg⁻¹"
+        yLabel="V / MJ kg⁻¹"
         yTicks={[-100, -80, -60, -40, -20, 0]}
         ariaLabel="Potential against distance along a line through the centre of the planet: a deep, rounded well"
       >
@@ -677,7 +677,7 @@ export default function PotentialWell({ page }) {
             max={9}
             step={0.1}
             onChange={setDistance}
-            display={`${sig(startR, 2)} R`}
+            display={`${sig(startR, 2)} R`}
           />
           <div className="row">
             <Button primary onClick={() => launch('rest', 'Released from rest: it rolls straight down the slope.')}>
@@ -719,22 +719,22 @@ export default function PotentialWell({ page }) {
       <Section title="At the marble">
         <Readouts>
           <Readout label="Distance r" value={sig(r, 3)} unit="R" />
-          <Readout label="Depth: potential V" value={sig(Vp, 3)} unit="MJ kg⁻¹" tone={COLORS.sage} />
-          <Readout label="Steepness: field g" value={sig(gReal, 3)} unit="N kg⁻¹" tone={COLORS.sky} />
-          <Readout label="Speed" value={sig((probe.speed * SPEED_UNIT) / 1000, 3)} unit="km s⁻¹" tone={COLORS.coral} />
+          <Readout label="Depth: potential V" value={sig(Vp, 3)} unit="MJ kg⁻¹" tone={COLORS.sage} />
+          <Readout label="Steepness: field g" value={sig(gReal, 3)} unit="N kg⁻¹" tone={COLORS.sky} />
+          <Readout label="Speed" value={sig((probe.speed * SPEED_UNIT) / 1000, 3)} unit="km s⁻¹" tone={COLORS.coral} />
         </Readouts>
         <p style={{ marginTop: 10 }}>
-          Values are for the Earth: R = 6371 km, and <V>V</V> = −62.6 MJ kg⁻¹ at the surface. The
+          Values are for the Earth: <Nw>R = 6371 km</Nw>, and <Nw><V>V</V> = −62.6 MJ kg⁻¹</Nw> at the surface. The
           animation is a steady time-lapse: one
-          second shows about {sig((TIME_RATE * EARTH.R) / SPEED_UNIT / 3600, 2)} hours.
+          second shows about {sig((TIME_RATE * EARTH.R) / SPEED_UNIT / 3600, 2)} hours.
         </p>
       </Section>
 
       <Section title="Reading the sheet">
         <Eq block>
-          height ∝ <V>V</V> = −<V>GM</V>/<V>r</V>
+          <Nw>height ∝ <V>V</V> = −<V>GM</V>/<V>r</V></Nw>
           <br />
-          steepness ∝ <V>g</V>
+          <Nw>steepness ∝ <V>g</V></Nw>
         </Eq>
         <p>
           A real stretched sheet only roughly takes this shape, and a real marble rolls because the
@@ -759,9 +759,9 @@ export default function PotentialWell({ page }) {
         </li>
         <li>
           Climbing out of the well takes energy. To escape completely, a mass needs enough kinetic
-          energy to reach the flat sheet far away, where <V>V</V> = 0.
+          energy to reach the flat sheet far away, where <Nw><V>V</V> = 0</Nw>.
         </li>
-        <li>Inside the planet the slope eases off to zero at the centre, where g = 0.</li>
+        <li>Inside the planet the slope eases off to zero at the centre, where <Nw><V>g</V> = 0</Nw>.</li>
       </KeyIdeas>
 
       <TryThis>

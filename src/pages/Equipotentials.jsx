@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { PageLayout } from '../components/Shell.jsx';
 import { Button, Controls, KeyIdeas, Legend, Readout, Readouts, Section, Segmented, Slider, Switch, TryThis } from '../components/ui.jsx';
-import { Eq, V } from '../components/Eq.jsx';
+import { Eq, Nw, V } from '../components/Eq.jsx';
 import { useCanvas, localPoint } from '../lib/useCanvas.js';
 import { contourSegments } from '../lib/contours.js';
 import { COLORS, SERIF, arrow, body, chevron, label } from '../lib/draw.js';
@@ -176,7 +176,7 @@ export default function Equipotentials({ page }) {
           last = [px, py];
           label(ctx, `${-L / 1e6}`, px, py, { size: 11, color: COLORS.sage, align: 'center' });
         });
-        label(ctx, 'V in −MJ kg⁻¹', 14, h - 18, { size: 12, color: COLORS.sage });
+        label(ctx, 'V in −MJ kg⁻¹', 14, h - 18, { size: 12, color: COLORS.sage });
       }
 
       bodies.forEach((b) => {
@@ -346,7 +346,7 @@ export default function Equipotentials({ page }) {
   const legend = (
     <Legend
       items={[
-        { label: 'Equipotentials, 5 MJ kg⁻¹ apart', color: COLORS.sage },
+        { label: 'Equipotentials, 5 MJ kg⁻¹ apart', color: COLORS.sage },
         { label: 'Field lines', color: COLORS.sky },
         { label: 'Your route', color: COLORS.coral, kind: 'dashed' },
       ]}
@@ -402,7 +402,7 @@ export default function Equipotentials({ page }) {
               display={`${sig(moonRatio, 2)} × planet`}
             />
           )}
-          <Slider label="Test mass m" value={mass} min={1} max={1000} step={1} onChange={setMass} display={`${mass} kg`} />
+          <Slider label="Test mass m" value={mass} min={1} max={1000} step={1} onChange={setMass} display={`${mass} kg`} />
           <Switch label="Show field lines" checked={showLines} onChange={setShowLines} />
           <Switch label="Label equipotentials" checked={showLabels} onChange={setShowLabels} />
           <div className="row">
@@ -418,15 +418,15 @@ export default function Equipotentials({ page }) {
 
       <Section title="At the test mass">
         <Readouts>
-          <Readout label="Potential V" value={sig(Vp / 1e6, 3)} unit="MJ kg⁻¹" tone={COLORS.sage} />
-          <Readout label="Field strength g" value={sig(g, 3)} unit="N kg⁻¹" tone={COLORS.sky} />
+          <Readout label="Potential V" value={sig(Vp / 1e6, 3)} unit="MJ kg⁻¹" tone={COLORS.sage} />
+          <Readout label="Field strength g" value={sig(g, 3)} unit="N kg⁻¹" tone={COLORS.sky} />
           <Readout label="Potential energy mV" value={sci(mass * Vp)} unit="J" tone={COLORS.pe} wide />
         </Readouts>
       </Section>
 
       <Section title="Work done along your route">
         <Eq block>
-          Δ<V>W</V> = <V>m</V>Δ<V>V</V>
+          <Nw>Δ<V>W</V> = <V>m</V>Δ<V>V</V></Nw>
         </Eq>
         <Readouts>
           <Readout
@@ -439,9 +439,9 @@ export default function Equipotentials({ page }) {
           <Readout
             label="ΔV from start to here"
             value={trip && trip.path.length > 1 ? sig(dV / 1e6, 3) : '—'}
-            unit={trip && trip.path.length > 1 ? 'MJ kg⁻¹' : ''}
+            unit={trip && trip.path.length > 1 ? 'MJ kg⁻¹' : ''}
           />
-          <Readout label="Distance travelled" value={trip ? `${sig(pathLength, 3)} R` : '—'} />
+          <Readout label="Distance travelled" value={trip ? `${sig(pathLength, 3)} R` : '—'} />
         </Readouts>
         <p style={{ marginTop: 10 }}>
           Take two different routes between the same two equipotentials: the work done is the
@@ -459,7 +459,7 @@ export default function Equipotentials({ page }) {
         <li>
           Moving a mass <V>m</V> through a potential difference Δ<V>V</V> takes
           <br />
-          work Δ<V>W</V> = <V>m</V>Δ<V>V</V>, whatever the route.
+          work <Nw>Δ<V>W</V> = <V>m</V>Δ<V>V</V></Nw>, whatever the route.
         </li>
         <li>
           An equipotential joins points of equal potential. No work is done moving along one.
@@ -474,7 +474,7 @@ export default function Equipotentials({ page }) {
 
       <TryThis>
         <li>Walk along an equipotential. Why is the work done zero, even though gravity acts all the way round?</li>
-        <li>Drag the mass from one equipotential to the next one out. How much work is that for 1 kg?</li>
+        <li>Drag the mass from one equipotential to the next one out. How much work is that for 1 kg?</li>
         <li>Drag the mass on a long detour and bring it back to the start. What is the total work done?</li>
         <li>With a moon, find the place between the bodies where the two pulls cancel.</li>
       </TryThis>

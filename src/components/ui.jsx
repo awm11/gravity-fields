@@ -109,7 +109,7 @@ export function Readout({ label, value, unit, tone, wide }) {
       <span className="readout-label">{label}</span>
       <span className="readout-value">
         {value}
-        {unit && <span className="readout-unit"> {unit}</span>}
+        {unit && <span className="readout-unit">{'\u00a0'}{unit}</span>}
       </span>
     </div>
   );

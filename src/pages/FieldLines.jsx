@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { PageLayout } from '../components/Shell.jsx';
 import { Button, Controls, InfoTip, KeyIdeas, Legend, Readout, Readouts, Section, Slider, TryThis } from '../components/ui.jsx';
-import { Eq, Frac, V } from '../components/Eq.jsx';
+import { Eq, Frac, Nw, V } from '../components/Eq.jsx';
 import { Plot, fnPath } from '../components/Plot.jsx';
 import { createStage, webglAvailable } from '../lib/threeStage.js';
 import { COLORS } from '../lib/draw.js';
@@ -414,7 +414,7 @@ export default function FieldLines({ page }) {
         ...(surface
           ? [{ label: 'Small loop: drag it up and down', color: COLORS.coral }]
           : [
-              { label: 'Loop round 50 million km² of the sphere', color: COLORS.coral },
+              { label: 'Loop round 50 million km² of the sphere', color: COLORS.coral },
               { label: 'Sphere of radius r', color: COLORS.sage },
             ]),
       ]}
@@ -438,7 +438,7 @@ export default function FieldLines({ page }) {
     <div className="figure">
       <div className="figure-head">
         <h3>Lines through the loop against distance</h3>
-        <p>Dots are your counts; the curve is the expected number of lines through 50 million km² of a sphere of radius r: N × 50 million km² ÷ 4πr², with r in km.</p>
+        <p>Dots are your counts; the curve is the expected number of lines through 50 million km² of a sphere of radius r: <Nw>N × 50 million km² ÷ 4πr²</Nw>, with r in km.</p>
       </div>
       <Plot
         x={[1, xMax]}
@@ -482,9 +482,9 @@ export default function FieldLines({ page }) {
             max={6}
             step={0.1}
             onChange={setDistance}
-            display={`${sig(distance, 2)} R`}
+            display={`${sig(distance, 2)} R`}
             disabled={surface}
-            hint="The loop always surrounds a curved patch of 50 million km² on the sphere of radius r."
+            hint="The loop always surrounds a curved patch of 50 million km² on the sphere of radius r."
           />
           <Slider
             label="Mass of planet"
@@ -493,7 +493,7 @@ export default function FieldLines({ page }) {
             max={2}
             step={0.25}
             onChange={setMass}
-            display={`${sig(mass, 3)} × Earth`}
+            display={`${sig(mass, 3)} × Earth`}
             hint={
               surface
                 ? 'Twice the mass, twice as many lines through each square kilometre (as near as a square grid allows).'
@@ -509,8 +509,8 @@ export default function FieldLines({ page }) {
                 label="Height of the small loop above the surface"
                 aside={
                   <InfoTip title="The ISS">
-                    The International Space Station orbits about 400 km up: about 6% of the
-                    Earth&rsquo;s radius. There <V>g</V> is about {sig(GM_EARTH / (EARTH.R + 4.08e5) ** 2, 2)} N kg⁻¹,
+                    The International Space Station orbits about 400 km up: about 6% of the
+                    Earth&rsquo;s radius. There <V>g</V> is about {sig(GM_EARTH / (EARTH.R + 4.08e5) ** 2, 2)} N kg⁻¹,
                     nearly 90% of its value at the surface. Astronauts float because they are falling
                     freely around the Earth, not because gravity has gone.
                   </InfoTip>
@@ -520,7 +520,7 @@ export default function FieldLines({ page }) {
                 max={SMALL_MAX}
                 step={0.001}
                 onChange={setSmallH}
-                display={`${Math.round((smallH - 1) * EARTH.R / 1000)} km`}
+                display={`${Math.round((smallH - 1) * EARTH.R / 1000)} km`}
               />
             </>
           )}
@@ -538,27 +538,27 @@ export default function FieldLines({ page }) {
             <>
               <Readout label="Lines through the small loop" value={smallLoopCount(patch, smallH)} tone={COLORS.brass} />
               <Readout label="Height above the surface" value={Math.round(((smallH - 1) * EARTH.R) / 1000)} unit="km" />
-              <Readout label="Field strength there, g" value={sig((GM_EARTH * mass) / (smallH * EARTH.R) ** 2, 3)} unit="N kg⁻¹" tone={COLORS.sky} wide />
+              <Readout label="Field strength there, g" value={sig((GM_EARTH * mass) / (smallH * EARTH.R) ** 2, 3)} unit="N kg⁻¹" tone={COLORS.sky} wide />
             </>
           ) : (
             <>
-              <Readout label="Lines through 50 million km² of the sphere" value={count} tone={COLORS.brass} />
-              <Readout label="Expected, N × 50 million km² ÷ 4πr² (r in km)" value={sig(expectedCount(n, distance), 3)} tone={COLORS.brass} />
-              <Readout label="Field strength there, g" value={sig(g, 3)} unit="N kg⁻¹" tone={COLORS.sky} />
-              <Readout label="Force on a 1 kg mass" value={sig(g, 3)} unit="N" tone={COLORS.coral} />
+              <Readout label="Lines through 50 million km² of the sphere" value={count} tone={COLORS.brass} />
+              <Readout label={<>Expected, <Nw>N × 50 million km² ÷ 4πr²</Nw> (r in km)</>} value={sig(expectedCount(n, distance), 3)} tone={COLORS.brass} wide />
+              <Readout label="Field strength there, g" value={sig(g, 3)} unit="N kg⁻¹" tone={COLORS.sky} />
+              <Readout label="Force on a 1 kg mass" value={sig(g, 3)} unit="N" tone={COLORS.coral} />
             </>
           )}
         </Readouts>
         <p style={{ marginTop: 10 }}>
           Values use Earth&rsquo;s radius for R, so at the surface <V>g</V> would be{' '}
-          {sig((GM_EARTH * mass) / EARTH.R ** 2, 3)} N kg⁻¹.
+          {sig((GM_EARTH * mass) / EARTH.R ** 2, 3)} N kg⁻¹.
         </p>
       </Section>
 
       <Section title="Field strength">
         <Eq block>
-          <V>g</V> = <Frac n={<V>F</V>} d={<V>m</V>} /> &nbsp;&nbsp; and in a radial field &nbsp;&nbsp;
-          <V>g</V> = <Frac n={<><V>G</V><V>M</V></>} d={<><V>r</V><sup>2</sup></>} />
+          <Nw><V>g</V> = <Frac n={<V>F</V>} d={<V>m</V>} /></Nw> &nbsp;&nbsp; and in a radial field &nbsp;&nbsp;
+          <Nw><V>g</V> = <Frac n={<><V>G</V><V>M</V></>} d={<><V>r</V><sup>2</sup></>} /></Nw>
         </Eq>
       </Section>
 
@@ -569,24 +569,24 @@ export default function FieldLines({ page }) {
           field is stronger.
         </li>
         <li>
-          Every line crosses each sphere around the planet. A sphere&rsquo;s area is 4π<V>r</V>²,
-          so the number of lines through each 50 million km² of it falls as 1/<V>r</V>², exactly
-          like <V>g</V> = <V>GM</V>/<V>r</V>². Counting through a fixed area is what makes the
+          Every line crosses each sphere around the planet. A sphere&rsquo;s area is <Nw>4π<V>r</V>²</Nw>,
+          so the number of lines through each 50 million km² of it falls as <Nw>1/<V>r</V>²</Nw>, exactly
+          like <Nw><V>g</V> = <V>GM</V>/<V>r</V>²</Nw>. Counting through a fixed area is what makes the
           count a measure of line density.
         </li>
         <li>
-          On a flat diagram lines only spread out as 1/<V>r</V>. The 3D picture is the one that
+          On a flat diagram lines only spread out as <Nw>1/<V>r</V></Nw>. The 3D picture is the one that
           matches the inverse-square law.
         </li>
         <li>
           Close to the surface the lines are almost parallel and evenly spaced: the field is
-          nearly uniform, which is why <V>g</V> ≈ 9.81 N kg⁻¹ in the lab.
+          nearly uniform, which is why <Nw><V>g</V> ≈ 9.81 N kg⁻¹</Nw> in the lab.
         </li>
       </KeyIdeas>
 
       <TryThis>
-        <li>Move the loop from 1 R to 2 R. It keeps the same area, 50 million km², but fewer lines pass through it. By what factor does the count fall?</li>
-        <li>Put the loop at r = R, on the surface. How many lines cross 50 million km² there?</li>
+        <li>Move the loop from 1 R to 2 R. It keeps the same area, 50 million km², but fewer lines pass through it. By what factor does the count fall?</li>
+        <li>Put the loop at <Nw>r = R</Nw>, on the surface. How many lines cross 50 million km² there?</li>
         <li>Double the planet&rsquo;s mass. What happens to the count, and to g?</li>
         <li>Zoom in to the surface and drag the small loop up and down. Why does the count hardly change?</li>
       </TryThis>

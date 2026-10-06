@@ -36,9 +36,9 @@ export function sci(value, sig = 3) {
   if (Math.abs(Number(mantStr)) >= 10) {
     mant /= 10;
     mantStr = trim(mant.toPrecision(sig));
-    return `${mantStr} × 10${superscript(exp + 1)}`;
+    return `${mantStr} × 10${superscript(exp + 1)}`;
   }
-  return `${mantStr} × 10${superscript(exp)}`;
+  return `${mantStr} × 10${superscript(exp)}`;
 }
 
 /** Fixed decimals, with a proper minus sign. */
@@ -73,11 +73,11 @@ export function grouped(value, dp = 0) {
 /** Durations: seconds → "92.6 min", "23.9 h", "27.3 days". */
 export function duration(seconds) {
   if (!Number.isFinite(seconds)) return '—';
-  if (seconds < 120) return `${sig(seconds, 3)} s`;
-  if (seconds < 7200) return `${sig(seconds / 60, 3)} min`;
-  if (seconds < 3 * 86400) return `${sig(seconds / 3600, 3)} h`;
-  if (seconds < 2 * 365.25 * 86400) return `${sig(seconds / 86400, 3)} days`;
-  return `${sig(seconds / (365.25 * 86400), 3)} years`;
+  if (seconds < 120) return `${sig(seconds, 3)} s`;
+  if (seconds < 7200) return `${sig(seconds / 60, 3)} min`;
+  if (seconds < 3 * 86400) return `${sig(seconds / 3600, 3)} h`;
+  if (seconds < 2 * 365.25 * 86400) return `${sig(seconds / 86400, 3)} days`;
+  return `${sig(seconds / (365.25 * 86400), 3)} years`;
 }
 
 function trim(str) {
@@ -92,3 +92,4 @@ function trim(str) {
 }
 
 const minus = (s) => s.replace(/^-/, '−');
+

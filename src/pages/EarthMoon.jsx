@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { PageLayout } from '../components/Shell.jsx';
 import { Controls, KeyIdeas, Legend, Readout, Readouts, Section, Segmented, Switch, TryThis } from '../components/ui.jsx';
-import { Eq, Frac, Sqrt, V } from '../components/Eq.jsx';
+import { Eq, Frac, Nw, Sqrt, V } from '../components/Eq.jsx';
 import { Plot, fnPath } from '../components/Plot.jsx';
 import { useCanvas, localPoint } from '../lib/useCanvas.js';
 import { COLORS, SERIF, arrow, body, label, stars } from '../lib/draw.js';
@@ -96,7 +96,7 @@ export default function EarthMoon({ page }) {
       ctx.moveTo(px(0), h - 31);
       ctx.lineTo(px(350), h - 31);
       ctx.stroke();
-      label(ctx, '10³ km', w - 10, h - 18, { size: 11, color: COLORS.text3, align: 'right' });
+      label(ctx, '10³ km', w - 10, h - 18, { size: 11, color: COLORS.text3, align: 'right' });
 
       // the neutral point
       const nx = px(neutral);
@@ -215,8 +215,8 @@ export default function EarthMoon({ page }) {
           y={[-6, 0]}
           height={230}
           xTicks={xTicks}
-          xLabel="distance from Earth’s centre / 10³ km"
-          yLabel="V / MJ kg⁻¹"
+          xLabel="distance from Earth’s centre / 10³ km"
+          yLabel="V / MJ kg⁻¹"
           onPointer={moveTo}
           ariaLabel="Potential against distance from the Earth: a hill with its top at the neutral point"
         >
@@ -246,8 +246,8 @@ export default function EarthMoon({ page }) {
           height={230}
           xTicks={xTicks}
           yTicks={[-12, -8, -4, 0, 4, 8, 12]}
-          xLabel="distance from Earth’s centre / 10³ km"
-          yLabel="g / 10⁻³ N kg⁻¹"
+          xLabel="distance from Earth’s centre / 10³ km"
+          yLabel="g / 10⁻³ N kg⁻¹"
           onPointer={moveTo}
           ariaLabel="Field strength against distance: negative near the Earth, crossing zero at the neutral point"
         >
@@ -302,19 +302,20 @@ export default function EarthMoon({ page }) {
       <Section title="At the craft">
         <Readouts>
           <Readout label="Distance from Earth’s centre" value={`${grouped(Math.round(x) * 1000)}`} unit="km" wide />
-          <Readout label="Earth’s pull" value={sci(Math.abs(gE))} unit="N kg⁻¹" tone={COLORS.sky} />
-          <Readout label="Moon’s pull" value={sci(Math.abs(gM))} unit="N kg⁻¹" tone={MOON_COLOR} />
-          <Readout label={`Resultant g ${towards}`} value={sci(Math.abs(g))} unit="N kg⁻¹" tone={COLORS.coral} wide />
-          <Readout label="Potential V" value={sig(Vx / 1e6, 3)} unit="MJ kg⁻¹" tone={COLORS.sage} />
-          <Readout label="Force on a 1000 kg craft" value={sci(Math.abs(g) * 1000)} unit="N" tone={COLORS.coral} />
+          <Readout label="Earth’s pull" value={sci(Math.abs(gE))} unit="N kg⁻¹" tone={COLORS.sky} />
+          <Readout label="Moon’s pull" value={sci(Math.abs(gM))} unit="N kg⁻¹" tone={MOON_COLOR} />
+          <Readout label={`Resultant g ${towards}`} value={sci(Math.abs(g))} unit="N kg⁻¹" tone={COLORS.coral} wide />
+          <Readout label="Potential V" value={sig(Vx / 1e6, 3)} unit="MJ kg⁻¹" tone={COLORS.sage} />
+          <Readout label="Force on a 1000 kg craft" value={sci(Math.abs(g) * 1000)} unit="N" tone={COLORS.coral} />
         </Readouts>
       </Section>
 
       <Section title="The neutral point">
         <Eq block>
-          <Frac2 />
+          <Nw><Frac2 /></Nw>
         </Eq>
         <Eq block>
+          <Nw>
           <V>x</V> ={' '}
           <span className="frac">
             <span className="frac-n">
@@ -330,14 +331,15 @@ export default function EarthMoon({ page }) {
               </Sqrt>
             </span>
           </span>
+          </Nw>
         </Eq>
         <p>
-          The pulls cancel {grouped(Math.round(neutral) * 1000)} km from the Earth&rsquo;s centre,{' '}
+          The pulls cancel {grouped(Math.round(neutral) * 1000)} km from the Earth&rsquo;s centre,{' '}
           {sig(neutral / D, 2)} of the way to the {ratio === 1 ? 'other body' : 'Moon'}. Here the
           potential graph is flat, at the top of a hill:{' '}
-          <span style={{ whiteSpace: 'nowrap' }}>
+          <Nw>
             <V>g</V> = −Δ<V>V</V>/Δ<V>r</V> = 0
-          </span>
+          </Nw>
           .
           The potential is still negative. It is not zero.
         </p>
@@ -366,7 +368,7 @@ export default function EarthMoon({ page }) {
         <li>Find the neutral point. How far is it from the Moon&rsquo;s centre, as a fraction of the distance?</li>
         <li>Make the masses equal. Where is the neutral point now, and why?</li>
         <li>
-          Near the Earth the Moon&rsquo;s pull is tiny. At 50 000 km, what percentage of the
+          Near the Earth the Moon&rsquo;s pull is tiny. At 50 000 km, what percentage of the
           resultant does it make?
         </li>
       </TryThis>

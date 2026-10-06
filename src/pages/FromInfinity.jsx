@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { PageLayout } from '../components/Shell.jsx';
 import { Button, Controls, KeyIdeas, Legend, Readout, Readouts, Section, Segmented, Slider, TryThis } from '../components/ui.jsx';
-import { Eq, Frac, V } from '../components/Eq.jsx';
+import { Eq, Frac, Nw, V } from '../components/Eq.jsx';
 import { Plot, fnPath } from '../components/Plot.jsx';
 import { useCanvas, localPoint } from '../lib/useCanvas.js';
 import { COLORS, SERIF, arrow, body, label, stars } from '../lib/draw.js';
@@ -451,7 +451,7 @@ export default function FromInfinity({ page }) {
           xTicks={X_TICKS}
           xFormat={xFormat}
           xLabel="r / R"
-          yLabel="V / MJ kg⁻¹"
+          yLabel="V / MJ kg⁻¹"
           ariaLabel="Potential against distance, rising from a negative value at the surface to zero at infinity"
           onPointer={(xv) => {
             if (mode !== 'lower' || flight.running) return;
@@ -474,7 +474,7 @@ export default function FromInfinity({ page }) {
     ) : (
       <div className="figure">
         <div className="figure-head">
-          <h3>Energy of a {PROBE_MASS} kg probe</h3>
+          <h3>Energy of a {PROBE_MASS} kg probe</h3>
           <p>The gap between the total energy and the potential energy is the kinetic energy.</p>
         </div>
         <Plot
@@ -497,7 +497,7 @@ export default function FromInfinity({ page }) {
                 {farLine(sx, sy, COLORS.pe)}
                 <line x1={sx(1)} x2={sx(X_INF)} y1={sy(E / 1e9)} y2={sy(E / 1e9)} stroke={COLORS.brass} strokeWidth="2" strokeDasharray={E < 0 ? '0' : '6 4'} />
                 <text className="plot-note" x={sx(BREAK) - 8} y={sy(E / 1e9) + 16} textAnchor="end" style={{ fill: COLORS.brass }}>
-                  total energy E = {sig(E / 1e9, 3)} GJ
+                  total energy E = {sig(E / 1e9, 3)} GJ
                 </text>
                 {E < 0 && rTurn < 1000 && (
                   <circle cx={sx(xFromR(rTurn))} cy={sy(E / 1e9)} r="5" fill="none" stroke={COLORS.brass} strokeWidth="2" />
@@ -528,10 +528,10 @@ export default function FromInfinity({ page }) {
     if (!falling) return 'Drag the probe to hold it at any distance, then let it fall, or let it fall from infinity.';
     if (flight.outcome === 'landed')
       return fromInf
-        ? `Hit the surface at ${sig(vNow / 1000, 3)} km s⁻¹, the escape speed, after falling for an infinitely long time.`
+        ? `Hit the surface at ${sig(vNow / 1000, 3)} km s⁻¹, the escape speed, after falling for an infinitely long time.`
         : flight.noTime
-          ? `Hit the surface at ${sig(vNow / 1000, 3)} km s⁻¹.`
-          : `Hit the surface at ${sig(vNow / 1000, 3)} km s⁻¹, ${duration(flight.t)} after it was let go.`;
+          ? `Hit the surface at ${sig(vNow / 1000, 3)} km s⁻¹.`
+          : `Hit the surface at ${sig(vNow / 1000, 3)} km s⁻¹, ${duration(flight.t)} after it was let go.`;
     return fromInf
       ? 'Falling from infinity, and speeding up.'
       : `Falling, and speeding up: ${duration(flight.t)} since it was let go.`;
@@ -555,7 +555,7 @@ export default function FromInfinity({ page }) {
               setXLower(v);
             }}
             disabled={flight.running}
-            display={Number.isFinite(rLower) && rLower < R_FAR ? `${sig(rLower, 3)} R` : '∞'}
+            display={Number.isFinite(rLower) && rLower < R_FAR ? `${sig(rLower, 3)} R` : '∞'}
           />
           <div className="row">
             {flight.running ? (
@@ -576,9 +576,9 @@ export default function FromInfinity({ page }) {
           <p className="status-line" aria-live="polite">{fallText}</p>
         </Controls>
       </Section>
-      <Section title={`For a ${PROBE_MASS} kg probe`}>
+      <Section title={`For a ${PROBE_MASS} kg probe`}>
         <Readouts>
-          <Readout label="Potential V" value={Number.isFinite(rLower) ? sig(Vof(rLower) / 1e6, 3) : '0'} unit="MJ kg⁻¹" tone={COLORS.sage} />
+          <Readout label="Potential V" value={Number.isFinite(rLower) ? sig(Vof(rLower) / 1e6, 3) : '0'} unit="MJ kg⁻¹" tone={COLORS.sage} />
           <Readout label="Potential energy mV" value={Number.isFinite(rLower) ? sig(pe(rLower) / 1e9, 3) : '0'} unit="GJ" tone={COLORS.pe} />
           {falling ? (
             <>
@@ -589,11 +589,11 @@ export default function FromInfinity({ page }) {
                 tone={COLORS.sky}
               />
               <Readout label="Kinetic energy gained" value={sig((0.5 * PROBE_MASS * vNow * vNow) / 1e9, 3)} unit="GJ" tone={COLORS.ke} />
-              <Readout label="Speed now" value={sig(vNow / 1000, 3)} unit="km s⁻¹" tone={COLORS.coral} />
+              <Readout label="Speed now" value={sig(vNow / 1000, 3)} unit="km s⁻¹" tone={COLORS.coral} />
               <Readout
                 label={fromInf ? '√(2GM/r) here' : '√(2GM(1/r − 1/r₀)) here'}
                 value={sig(vFromEnergy(rLower) / 1000, 3)}
-                unit="km s⁻¹"
+                unit="km s⁻¹"
                 tone={COLORS.coral}
               />
             </>
@@ -609,14 +609,14 @@ export default function FromInfinity({ page }) {
             {fromInf ? (
               <>
                 Let go at infinity, the probe speeds up all the way in. Nothing holds it back, so
-                gravity&rsquo;s work all becomes kinetic energy: ½<V>mv</V>² = −<V>mV</V>, so{' '}
-                <V>v</V> = √(2<V>GM</V>/<V>r</V>). It reaches the surface at the escape speed: escaping is
+                gravity&rsquo;s work all becomes kinetic energy: <Nw>½<V>mv</V>² = −<V>mV</V></Nw>, so{' '}
+                <Nw><V>v</V> = √(2<V>GM</V>/<V>r</V>)</Nw>. It reaches the surface at the escape speed: escaping is
                 this fall run backwards.
               </>
             ) : (
               <>
-                Let go at <V>r</V>₀, the probe speeds up all the way in. Gravity&rsquo;s work becomes
-                kinetic energy: ½<V>mv</V>² = <V>m</V>(<V>V</V>(<V>r</V>₀) − <V>V</V>(<V>r</V>)). It lands
+                Let go at <Nw><V>r</V>₀</Nw>, the probe speeds up all the way in. Gravity&rsquo;s work becomes
+                kinetic energy: <Nw>½<V>mv</V>² = <V>m</V>(<V>V</V>(<V>r</V>₀) − <V>V</V>(<V>r</V>))</Nw>. It lands
                 slower than a probe that fell from infinity.
               </>
             )}
@@ -637,13 +637,13 @@ export default function FromInfinity({ page }) {
     if (flight.outcome === 'still') return 'With no speed it stays where it is.';
     if (flight.outcome === 'fell')
       return flight.noTime
-        ? `Fell back. It reached ${sig(flight.rMax, 3)} R from the centre.`
-        : `Fell back after ${duration(flight.t)}. It reached ${sig(flight.rMax, 3)} R from the centre.`;
+        ? `Fell back. It reached ${sig(flight.rMax, 3)} R from the centre.`
+        : `Fell back after ${duration(flight.t)}. It reached ${sig(flight.rMax, 3)} R from the centre.`;
     if (flight.outcome === 'escaped') {
       const vInf = Math.sqrt(Math.max(0, v0 * v0 - vEsc * vEsc));
       return vInf < 0.05 * vEsc
         ? 'Escaped, only just. Its speed falls towards zero as it heads for infinity.'
-        : `Escaped. Far away it is still moving at ${sig(vInf / 1000, 3)} km s⁻¹.`;
+        : `Escaped. Far away it is still moving at ${sig(vInf / 1000, 3)} km s⁻¹.`;
     }
     if (flight.running) return `In flight: ${duration(flight.t)} since launch.`;
     return E < 0 ? 'Total energy is negative: it will come back.' : 'Total energy is zero or more: it will escape.';
@@ -664,7 +664,7 @@ export default function FromInfinity({ page }) {
               setFlight(IDLE);
             }}
             disabled={flight.running}
-            display={`${sig(speed, 3)} km s⁻¹`}
+            display={`${sig(speed, 3)} km s⁻¹`}
             marks={[{ value: vEsc / 1000, label: 'escape' }]}
           />
           <div className="row">
@@ -678,23 +678,23 @@ export default function FromInfinity({ page }) {
           <p className="status-line" aria-live="polite">{outcomeText}</p>
         </Controls>
       </Section>
-      <Section title={`Energy of the ${PROBE_MASS} kg probe`}>
+      <Section title={`Energy of the ${PROBE_MASS} kg probe`}>
         <Readouts>
           <Readout label="Kinetic energy at launch" value={sig((0.5 * PROBE_MASS * v0 * v0) / 1e9, 3)} unit="GJ" tone={COLORS.ke} />
           <Readout label="Potential energy at surface" value={sig(peS, 3)} unit="GJ" tone={COLORS.pe} />
           <Readout label="Total energy E" value={sig(E / 1e9, 3)} unit="GJ" tone={COLORS.brass} />
           <Readout label="Distance now" value={flight.r >= R_FAR ? '∞' : sig(flight.r, 3)} unit={flight.r >= R_FAR ? '' : 'R'} />
-          <Readout label="Speed now" value={sig(Math.abs(flight.v) / 1000, 3)} unit="km s⁻¹" tone={COLORS.coral} />
-          <Readout label={`Escape speed from ${planet.name}`} value={sig(vEsc / 1000, 3)} unit="km s⁻¹" tone={COLORS.brass} />
+          <Readout label="Speed now" value={sig(Math.abs(flight.v) / 1000, 3)} unit="km s⁻¹" tone={COLORS.coral} />
+          <Readout label={`Escape speed from ${planet.name}`} value={sig(vEsc / 1000, 3)} unit="km s⁻¹" tone={COLORS.brass} />
         </Readouts>
       </Section>
       <Section title="Escape velocity">
         <Eq block>
-          ½<V>mv</V>² = <Frac n={<><V>GMm</V></>} d={<V>R</V>} />
-          <br />⇒ &nbsp; <V>v</V> = √(2<V>GM</V>/<V>R</V>)
+          <Nw>½<V>mv</V>² = <Frac n={<><V>GMm</V></>} d={<V>R</V>} /></Nw>
+          <br /><Nw>⇒ &nbsp; <V>v</V> = √(2<V>GM</V>/<V>R</V>)</Nw>
         </Eq>
         <p>
-          Enough kinetic energy to climb all the way to <V>V</V> = 0 at infinity. The probe&rsquo;s
+          Enough kinetic energy to climb all the way to <Nw><V>V</V> = 0</Nw> at infinity. The probe&rsquo;s
           mass cancels, so the escape speed is the same for a pebble and a spacecraft. (Air
           resistance and the planet&rsquo;s spin are ignored.)
         </p>
@@ -732,18 +732,18 @@ export default function FromInfinity({ page }) {
       <KeyIdeas>
         <li>
           Gravitational potential is zero at infinity. Every point nearer a mass has a lower,
-          negative potential: <V>V</V> = −<V>GM</V>/<V>r</V>.
+          negative potential: <Nw><V>V</V> = −<V>GM</V>/<V>r</V></Nw>.
         </li>
         <li>
-          Potential energy is <V>mV</V> = −<V>GMm</V>/<V>r</V>. As a mass falls in, its potential
+          Potential energy is <Nw><V>mV</V> = −<V>GMm</V>/<V>r</V></Nw>. As a mass falls in, its potential
           energy becomes more negative and its kinetic energy grows.
         </li>
         <li>
-          A probe launched upwards keeps a fixed total energy <V>E</V> = KE + PE. If <V>E</V> is
-          negative it must turn back where KE = 0. If <V>E</V> is zero or more it escapes.
+          A probe launched upwards keeps a fixed total energy <Nw><V>E</V> = KE + PE</Nw>. If <V>E</V> is
+          negative it must turn back where <Nw>KE = 0</Nw>. If <V>E</V> is zero or more it escapes.
         </li>
         <li>
-          The escape velocity is √(2<V>GM</V>/<V>R</V>): 11.2 km s⁻¹ from the Earth, 2.4 km s⁻¹ from
+          The escape velocity is <Nw>√(2<V>GM</V>/<V>R</V>)</Nw>: 11.2 km s⁻¹ from the Earth, 2.4 km s⁻¹ from
           the Moon.
         </li>
       </KeyIdeas>
@@ -751,12 +751,12 @@ export default function FromInfinity({ page }) {
       <TryThis>
         {mode === 'lower' ? (
           <>
-            <li>How much work does gravity do bringing the probe from infinity to 2 R? And from 2 R to the surface?</li>
+            <li>How much work does gravity do bringing the probe from infinity to 2 R? And from 2 R to the surface?</li>
             <li>At what distance is the potential half its value at the surface?</li>
           </>
         ) : (
           <>
-            <li>Launch at 0.8 of the escape speed. How high does it get? Check with<br /><V>E</V> = −<V>GMm</V>/<V>r</V>.</li>
+            <li>Launch at 0.8 of the escape speed. How high does it get? Check with<br /><Nw><V>E</V> = −<V>GMm</V>/<V>r</V></Nw>.</li>
             <li>Launch just above escape speed. Why does it hardly slow down once it is far away?</li>
             <li>Compare the Moon. Why did the Apollo ascent stages need so much less fuel than a rocket leaving the Earth?</li>
           </>

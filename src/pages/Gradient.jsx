@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PageLayout } from '../components/Shell.jsx';
 import { Controls, KeyIdeas, Readout, Readouts, Section, Segmented, Switch, TryThis } from '../components/ui.jsx';
-import { Eq, Frac, V } from '../components/Eq.jsx';
+import { Eq, EqLine, Frac, Nw, V } from '../components/Eq.jsx';
 import { Plot, areaPath, fnPath } from '../components/Plot.jsx';
 import { COLORS } from '../lib/draw.js';
 import { EARTH, clamp } from '../lib/physics.js';
@@ -107,7 +107,7 @@ export default function Gradient({ page }) {
         yTicks={inside ? [-100, -80, -60, -40, -20, 0] : [-70, -60, -50, -40, -30, -20, -10, 0]}
         xFormat={(v) => `${v}`}
         xLabel="r / R"
-        yLabel="V / MJ kg⁻¹"
+        yLabel="V / MJ kg⁻¹"
         onPointer={pick}
         ariaLabel="Graph of potential against distance: negative, rising towards zero"
       >
@@ -138,7 +138,7 @@ export default function Gradient({ page }) {
                     strokeDasharray="4 3"
                   />
                   <text className="plot-note" x={sx(r + dr / 2)} y={sy(Vr(r)) + 16} textAnchor="middle">
-                    Δr = {drText} R
+                    Δr = {drText} R
                   </text>
                   <text className="plot-note" x={sx(r + dr) + 6} y={sy(Vr(r) + (dr * s) / 2)} dominantBaseline="middle">
                     ΔV = {sig(dr * s, 3)}
@@ -194,7 +194,7 @@ export default function Gradient({ page }) {
         xTicks={xTicks}
         yTicks={[-10, -8, -6, -4, -2, 0]}
         xLabel="r / R"
-        yLabel="g / N kg⁻¹"
+        yLabel="g / N kg⁻¹"
         onPointer={pick}
         ariaLabel="Graph of field strength against distance: negative, an inverse-square curve outside the planet rising towards zero"
       >
@@ -228,7 +228,7 @@ export default function Gradient({ page }) {
       {inside && (
         <p className="plot-caption">
           The shaded band is inside the planet, modelled as a uniform sphere: there the size of{' '}
-          <V>g</V> grows in proportion to <V>r</V>, from zero at the centre to 9.81 N kg⁻¹ at the
+          <V>g</V> grows in proportion to <V>r</V>, from zero at the centre to 9.81 N kg⁻¹ at the
           surface.
         </p>
       )}
@@ -255,28 +255,28 @@ export default function Gradient({ page }) {
       {mode === 'gradient' ? (
         <Section title="Gradient of the potential">
           <Eq block>
-            <V>g</V> = −<Frac n={<>Δ<V>V</V></>} d={<>Δ<V>r</V></>} />
+            <Nw><V>g</V> = −<Frac n={<>Δ<V>V</V></>} d={<>Δ<V>r</V></>} /></Nw>
           </Eq>
           <Readouts>
             <Readout label="Distance r" value={sig(r, 3)} unit="R" />
-            <Readout label="Potential V" value={sig(Vr(r), 3)} unit="MJ kg⁻¹" tone={COLORS.sage} />
-            <Readout label="Gradient ΔV/Δr" value={sSI > 0 ? `+${sig(sSI, 3)}` : '0'} unit="J kg⁻¹ m⁻¹" tone={COLORS.brass} wide />
-            <Readout label="Field strength g" value={sSI > 0 ? sig(-sSI, 3) : '0'} unit="N kg⁻¹" tone={COLORS.sky} wide />
+            <Readout label="Potential V" value={sig(Vr(r), 3)} unit="MJ kg⁻¹" tone={COLORS.sage} />
+            <Readout label="Gradient ΔV/Δr" value={sSI > 0 ? `+${sig(sSI, 3)}` : '0'} unit="J kg⁻¹ m⁻¹" tone={COLORS.brass} wide />
+            <Readout label="Field strength g" value={sSI > 0 ? sig(-sSI, 3) : '0'} unit="N kg⁻¹" tone={COLORS.sky} wide />
           </Readouts>
           <p style={{ marginTop: 10 }}>
             {r === 0 ? (
               <>
-                At the centre the tangent is flat: the gradient is zero, so <V>g</V> = 0. Every part
+                At the centre the tangent is flat: the gradient is zero, so <Nw><V>g</V> = 0</Nw>. Every part
                 of the planet pulls equally in every direction.
               </>
             ) : (
               <>
                 The gradient is positive: <V>V</V> rises as you move out. So <V>g</V>, minus the
                 gradient, is negative: the field points the other way, down the potential hill,
-                towards the planet. The <V>g</V> graph shows this value, −{sig(sSI, 3)} N kg⁻¹
+                towards the planet. The <V>g</V> graph shows this value, <Nw>−{sig(sSI, 3)} N kg⁻¹</Nw>
                 {r >= 1 ? (
                   <>
-                    , and its size equals <V>GM</V>/<V>r</V>².
+                    , and its size equals <Nw><V>GM</V>/<V>r</V>²</Nw>.
                   </>
                 ) : (
                   '.'
@@ -285,52 +285,53 @@ export default function Gradient({ page }) {
             )}
           </p>
           <p>
-            Using the triangle to find the gradient gives Δ<V>V</V>/Δ<V>r</V> = {sig(dr * s, 3)} MJ kg⁻¹ ÷ (
-            {drText} × 6371 km) = {sig(sSI, 3)} N kg⁻¹.
+            Using the triangle to find the gradient gives <EqLine><Nw>Δ<V>V</V>/Δ<V>r</V></Nw>{' '}
+            <Nw>= {sig(dr * s, 3)} MJ kg⁻¹ ÷ ({drText} × 6371 km)</Nw>{' '}
+            <Nw>= {sig(sSI, 3)} N kg⁻¹.</Nw></EqLine>
           </p>
         </Section>
       ) : (
         <Section title="Area under the field strength graph">
           <Eq block>
-            Δ<V>V</V> = −∫ <V>g</V> d<V>r</V> = the area between the <V>g</V>–<V>r</V> graph and the <V>r</V> axis
+            <Nw>Δ<V>V</V> = −∫ <V>g</V> d<V>r</V></Nw> = the area between the <V>g</V>–<V>r</V> graph and the <V>r</V> axis
           </Eq>
           <p>
             <V>g</V> is the force per kilogram (negative here, because it points inwards). Moving out
             against it, the work done per kilogram is (force per kilogram) × (distance) added up over
-            the whole distance: −∫ <V>g</V> d<V>r</V>, the size of the area between the curve and the{' '}
+            the whole distance: <Nw>−∫ <V>g</V> d<V>r</V></Nw>, the size of the area between the curve and the{' '}
             <V>r</V> axis. That is the change in potential.
           </p>
           <Readouts>
             <Readout label="From r₁" value={sig(r1, 3)} unit="R" />
             <Readout label="To r₂" value={sig(r2, 3)} unit="R" />
-            <Readout label="Area between g and the r axis" value={sig(area, 3)} unit="MJ kg⁻¹" tone={COLORS.coral} />
-            <Readout label="ΔV from the V graph" value={`+${sig(dV, 3)}`} unit="MJ kg⁻¹" tone={COLORS.sage} />
-            <Readout label="Work to lift a 1000 kg probe" value={sig((dV * 1e6 * 1000) / 1e9, 3)} unit="GJ" tone={COLORS.brass} wide />
+            <Readout label="Area between g and the r axis" value={sig(area, 3)} unit="MJ kg⁻¹" tone={COLORS.coral} />
+            <Readout label="ΔV from the V graph" value={`+${sig(dV, 3)}`} unit="MJ kg⁻¹" tone={COLORS.sage} />
+            <Readout label="Work to lift a 1000 kg probe" value={sig((dV * 1e6 * 1000) / 1e9, 3)} unit="GJ" tone={COLORS.brass} wide />
           </Readouts>
           <p style={{ marginTop: 10 }}>
-            Counting squares: each grid square on the <V>g</V> graph is 1 R × 2 N kg⁻¹ ={' '}
-            {sig(SQUARE, 3)} MJ kg⁻¹, and the shaded area covers about {sig(squares, 2)} squares.
+            Counting squares: each grid square on the <V>g</V> graph is <Nw>1 R × 2 N kg⁻¹</Nw>{' '}
+            <Nw>= {sig(SQUARE, 3)} MJ kg⁻¹</Nw>, and the shaded area covers about {sig(squares, 2)} squares.
           </p>
         </Section>
       )}
 
       <KeyIdeas>
         <li>
-          <V>V</V> = −<V>GM</V>/<V>r</V>: negative everywhere, and rising towards zero as <V>r</V>{' '}
-          grows. Its graph is a 1/<V>r</V> curve.
+          <Nw><V>V</V> = −<V>GM</V>/<V>r</V></Nw>: negative everywhere, and rising towards zero as <V>r</V>{' '}
+          grows. Its graph is a <Nw>1/<V>r</V></Nw> curve.
         </li>
         <li>
-          The size of <V>g</V>, <V>GM</V>/<V>r</V>², falls faster, as 1/<V>r</V>². Double the distance
+          The size of <V>g</V>, <Nw><V>GM</V>/<V>r</V>²</Nw>, falls faster, as <Nw>1/<V>r</V>²</Nw>. Double the distance
           and <V>V</V> halves, but <V>g</V> falls to a quarter.
         </li>
         <li>
           The field strength at a point is minus the gradient of the <V>V</V>–<V>r</V> graph
-          there: <V>g</V> = −Δ<V>V</V>/Δ<V>r</V>. Steep potential, strong field.
+          there: <Nw><V>g</V> = −Δ<V>V</V>/Δ<V>r</V></Nw>. Steep potential, strong field.
         </li>
         <li>
           The area between the <V>g</V>–<V>r</V> graph and the <V>r</V> axis, between two distances,
-          comes from the integral of the force per kilogram over that distance: Δ<V>V</V> = −∫{' '}
-          <V>g</V> d<V>r</V>. Force × distance is work, so the area is the work done per kilogram to
+          comes from the integral of the force per kilogram over that distance:{' '}
+          <Nw>Δ<V>V</V> = −∫ <V>g</V> d<V>r</V></Nw>. Force × distance is work, so the area is the work done per kilogram to
           move between them: the potential difference Δ<V>V</V>.
         </li>
       </KeyIdeas>
@@ -340,15 +341,15 @@ export default function Gradient({ page }) {
           You do not need to know the shape of the potential <em>inside</em> a planet. You do need
           to know how the field strength behaves there: for a uniform planet <V>g</V> rises in
           proportion to <V>r</V>, from zero at the centre to its surface value, then falls as
-          1/<V>r</V>² outside.
+          <Nw>1/<V>r</V>²</Nw> outside.
         </p>
       </Section>
 
       <TryThis>
-        <li>Find the gradient at 2 R and at 4 R. How do they compare?</li>
-        <li>At what distance is the field strength 1 N kg⁻¹? Check it on both graphs.</li>
+        <li>Find the gradient at 2 R and at 4 R. How do they compare?</li>
+        <li>At what distance is the field strength 1 N kg⁻¹? Check it on both graphs.</li>
         <li>
-          Shade from 1 R to 6 R. How much energy would it take to lift a 1000 kg probe that far?
+          Shade from 1 R to 6 R. How much energy would it take to lift a 1000 kg probe that far?
         </li>
       </TryThis>
     </>

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { PageLayout } from '../components/Shell.jsx';
 import { Button, Controls, KeyIdeas, Legend, Readout, Readouts, Section, Slider, Switch, TryThis } from '../components/ui.jsx';
-import { Eq, Frac, V } from '../components/Eq.jsx';
+import { Eq, Frac, Nw, V } from '../components/Eq.jsx';
 import { useCanvas } from '../lib/useCanvas.js';
 import { COLORS, SERIF, arrow, label, stars } from '../lib/draw.js';
 import { EARTH, G, prefersReducedMotion } from '../lib/physics.js';
@@ -199,7 +199,7 @@ export default function Schiehallion({ page }) {
 
   const stage = (
     <>
-      <canvas ref={canvasRef} role="img" aria-label={`Plumb lines on either side of Schiehallion, each pulled ${sig(delta, 2)} seconds of arc towards the mountain`} />
+      <canvas ref={canvasRef} role="img" aria-label={`Plumb lines on either side of Schiehallion, each pulled ${sig(delta, 2)} seconds of arc towards the mountain`} />
     </>
   );
 
@@ -227,9 +227,9 @@ export default function Schiehallion({ page }) {
             max={3000}
             step={10}
             onChange={setRhoM}
-            display={`${rhoM} kg m⁻³`}
+            display={`${rhoM} kg m⁻³`}
             marks={[{ value: 2500, label: 'Hutton' }]}
-            hint="Red mark: 2500 kg m⁻³, the density Hutton assumed for the mountain's rock."
+            hint="Red mark: 2500 kg m⁻³, the density Hutton assumed for the mountain's rock."
           />
           <Slider
             label="Mean density of the Earth ρₑ"
@@ -238,12 +238,12 @@ export default function Schiehallion({ page }) {
             max={8000}
             step={10}
             onChange={setRhoE}
-            display={`${rhoE} kg m⁻³`}
+            display={`${rhoE} kg m⁻³`}
             marks={[
               { value: 4500, label: 'Hutton' },
               { value: MODERN_EARTH, label: 'today' },
             ]}
-            hint={`Red marks: Hutton's 1778 answer, 4500 kg m⁻³, and today's accepted value, ${MODERN_EARTH} kg m⁻³.`}
+            hint={`Red marks: Hutton's 1778 answer, 4500 kg m⁻³, and today's accepted value, ${MODERN_EARTH} kg m⁻³.`}
           />
           <div className="row">
             <Button primary onClick={() => setRhoE(Math.round(solvedRhoE / 10) * 10)}>
@@ -266,18 +266,18 @@ export default function Schiehallion({ page }) {
           depends on its density and shape; the Earth&rsquo;s downward pull depends on its mean
           density. You don&rsquo;t know the Earth&rsquo;s density: that is what the experiment found.
           Slide it until the predicted δ matches the 5.8″ that was measured. That is what Hutton
-          did, by calculation, and he got 4500 kg m⁻³.
+          did, by calculation, and he got 4500 kg m⁻³.
         </p>
       </Section>
 
       <Section title="Deflection at each station">
         <Eq block>
-          tan δ ≈ δ = <Frac n={<><V>g</V><sub>h</sub></>} d={<V>g</V>} />
+          <Nw>tan δ ≈ δ = <Frac n={<><V>g</V><sub>h</sub></>} d={<V>g</V>} /></Nw>
         </Eq>
         <Readouts>
           <Readout label="Predicted δ" value={`${sig(delta, 3)}″`} tone={match ? COLORS.sage : COLORS.coral} />
           <Readout label="Measured δ" value={`${MEASURED}″`} tone={COLORS.brass} />
-          <Readout label="The mountain’s sideways field, gₕ" value={sci(gH)} unit="N kg⁻¹" tone={COLORS.coral} wide />
+          <Readout label="The mountain’s sideways field, gₕ" value={sci(gH)} unit="N kg⁻¹" tone={COLORS.coral} wide />
         </Readouts>
         <p style={{ marginTop: 10 }}>
           Both <V>g</V><sub>h</sub> and <V>g</V> are proportional to <V>G</V>, so <V>G</V> cancels. The
@@ -288,12 +288,12 @@ export default function Schiehallion({ page }) {
       <Section title="Weighing the Earth">
         <Readouts>
           <Readout label="Mass of the Earth" value={sci(earthMass)} unit="kg" wide />
-          <Readout label="So G = gR²/M" value={sci(impliedG)} unit="N m² kg⁻²" tone={COLORS.brass} wide />
+          <Readout label={<>So <Nw>G = gR²/M</Nw></>} value={sci(impliedG)} unit="N m² kg⁻²" tone={COLORS.brass} wide />
         </Readouts>
         <p style={{ marginTop: 10 }}>
           {match
-            ? `This density matches the measurement. Hutton found 4500 kg m⁻³ in 1778, about 80% of today’s ${MODERN_EARTH} kg m⁻³, mostly because the rock density was hard to know.`
-            : 'Volume × density gives the Earth’s mass. Then g = GM/R², with g and R already known, gives G.'}
+            ? `This density matches the measurement. Hutton found 4500 kg m⁻³ in 1778, about 80% of today’s ${MODERN_EARTH} kg m⁻³, mostly because the rock density was hard to know.`
+            : <>Volume × density gives the Earth&rsquo;s mass. Then <Nw><V>g</V> = <V>GM</V>/<V>R</V>²</Nw>, with <V>g</V> and <V>R</V> already known, gives <V>G</V>.</>}
         </p>
       </Section>
 
@@ -322,9 +322,9 @@ export default function Schiehallion({ page }) {
           </li>
           <li>
             Comparing the mountain&rsquo;s calculated pull with the measured deflection, Hutton found
-            the Earth&rsquo;s mean density was about 9/5 of the mountain&rsquo;s: 4500 kg m⁻³ if the rock
-            is 2500 kg m⁻³. A later geological survey of the rocks (Playfair, 1811) raised this to
-            4560–4870 kg m⁻³. Today&rsquo;s value is {MODERN_EARTH} kg m⁻³.
+            the Earth&rsquo;s mean density was about 9/5 of the mountain&rsquo;s: 4500 kg m⁻³ if the rock
+            is 2500 kg m⁻³. A later geological survey of the rocks (Playfair, 1811) raised this to
+            4560–4870 kg m⁻³. Today&rsquo;s value is {MODERN_EARTH} kg m⁻³.
           </li>
         </ol>
         <p className="plot-caption">
@@ -340,12 +340,12 @@ export default function Schiehallion({ page }) {
           pull, sideways.
         </li>
         <li>
-          The sideways pull was only about 1/36 000 of <V>g</V>. Comparing the plumb lines with the
+          The sideways pull was only about <Nw>1/36 000</Nw> of <V>g</V>. Comparing the plumb lines with the
           stars on both sides doubles the effect and cancels many errors.
         </li>
         <li>
           This was the first measurement of the Earth&rsquo;s density, and so of its mass. With the
-          mass known, <V>g</V> = <V>GM</V>/<V>R</V>² gives <V>G</V>.
+          mass known, <Nw><V>g</V> = <V>GM</V>/<V>R</V>²</Nw> gives <V>G</V>.
         </li>
         <li>
           To find the mountain&rsquo;s volume, Charles Hutton joined points of equal height on the
@@ -361,12 +361,12 @@ export default function Schiehallion({ page }) {
 
       <Section title="What does 54.6″ mean?" below>
         <p>
-          The ″ means seconds of arc, a unit of angle. A degree is split into 60 minutes of arc
-          (60′), and each minute into 60 seconds of arc (60″), so 1″ is 1/3600 of a degree.
+          The ″ means seconds of arc, a unit of angle. A degree is split into 60 minutes of arc
+          (60′), and each minute into 60 seconds of arc (60″), so 1″ is 1/3600 of a degree.
         </p>
         <p>
-          54.6″ is about 0.015°: the width of a 1p coin (20 mm across) seen from about 77 m away.
-          The mountain&rsquo;s share of that difference, 5.8″ at each station, is the same coin seen from about 720 m.
+          54.6″ is about 0.015°: the width of a 1p coin (20 mm across) seen from about 77 m away.
+          The mountain&rsquo;s share of that difference, 5.8″ at each station, is the same coin seen from about 720 m.
         </p>
       </Section>
     </>
@@ -381,7 +381,7 @@ function Gauge({ value, measured }) {
   const pct = (v) => `${(Math.min(max, Math.max(0, v)) / max) * 100}%`;
   const ticks = [0, 2, 4, 6, 8, 10, 12, 14];
   return (
-    <div className="gauge" role="img" aria-label={`Predicted deflection ${sig(value, 3)} seconds of arc; measured ${measured}`}>
+    <div className="gauge" role="img" aria-label={`Predicted deflection ${sig(value, 3)} seconds of arc; measured ${measured}`}>
       <div className="gauge-track">
         <div className="gauge-fill" style={{ width: pct(value) }} />
         <div className="gauge-measured" style={{ left: pct(measured) }}>
