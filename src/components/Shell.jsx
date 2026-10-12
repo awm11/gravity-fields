@@ -3,7 +3,7 @@ import { KeyIdeas, TryThis } from './ui.jsx';
 import { PAGES, SECTIONS } from '../pages/registry.js';
 import { hrefFor } from '../lib/router.js';
 
-const SITE_URL = 'https://awm11.github.io/';
+const SITE_URL = '/';
 const LOGO_SRC = `${import.meta.env.BASE_URL}favicon.svg`;
 
 function ContentsMenu({ currentPath }) {

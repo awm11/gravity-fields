@@ -53,7 +53,7 @@ export default function App() {
       </main>
       <footer className="site-foot">
         <div className="site-foot-brand">
-          <a href="https://awm11.github.io/" aria-label="awm Physics home page">
+          <a href="/" aria-label="awm Physics home page">
             <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width="44" height="44" />
           </a>
           <p>
@@ -63,7 +63,7 @@ export default function App() {
               support the project
             </a>{' '}
             with a coffee, or{' '}
-            <a href="https://awm11.github.io/">see more simulations</a>.
+            <a href="/">see more simulations</a>.
           </p>
         </div>
         {page && (

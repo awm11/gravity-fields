@@ -132,7 +132,7 @@ less than 860 px tall.
 ## Branding
 
 The logo at the top left is `public/favicon.svg` (also the tab icon); it links to
-https://awm11.github.io/ and tips to the right when pointed at. Every page ends
+the site root (`/`) and tips to the right when pointed at. Every page ends
 with a footer holding the Buy me a coffee button (`src/components/BuyMeCoffee.jsx`)
 at the bottom right.
 
