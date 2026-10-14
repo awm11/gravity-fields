@@ -96,6 +96,15 @@ const DRAWINGS = {
       <Head x={26} y={38} dir="l" color={S.coral} />
     </>
   ),
+  inside: (
+    <>
+      <circle cx="32" cy="32" r="24" fill="none" stroke={S.sky} strokeWidth="1.3" opacity="0.75" />
+      <path d="M27 27L9.45 23.79A24 24 0 0 1 18.23 12.34Z" fill="rgba(242,115,94,0.22)" />
+      <path d="M27 27L56 32.3A24 24 0 0 1 42.8 53.4Z" fill="rgba(242,115,94,0.22)" />
+      <path d="M9.45 23.79A24 24 0 0 1 18.23 12.34M56 32.3A24 24 0 0 1 42.8 53.4" fill="none" stroke={S.coral} strokeWidth="3" />
+      <circle cx="27" cy="27" r="2.6" fill="#e8ecf5" />
+    </>
+  ),
   orbits: (
     <>
       <circle cx="32" cy="32" r="22" fill="none" stroke={S.text} strokeWidth="1" strokeDasharray="2 3" />

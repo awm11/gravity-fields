@@ -13,6 +13,7 @@ import PotentialWell from './pages/PotentialWell.jsx';
 import Gradient from './pages/Gradient.jsx';
 import EarthMoon from './pages/EarthMoon.jsx';
 import FromInfinity from './pages/FromInfinity.jsx';
+import InsidePlanet from './pages/InsidePlanet.jsx';
 import Orbits from './pages/Orbits.jsx';
 import OrbitalEnergy from './pages/OrbitalEnergy.jsx';
 import Cavendish from './pages/Cavendish.jsx';
@@ -26,6 +27,7 @@ const COMPONENTS = {
   '/gradient': Gradient,
   '/earth-moon': EarthMoon,
   '/from-infinity': FromInfinity,
+  '/inside-a-planet': InsidePlanet,
   '/orbits': Orbits,
   '/orbital-energy': OrbitalEnergy,
   '/cavendish': Cavendish,

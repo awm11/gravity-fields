@@ -109,6 +109,17 @@ export const PAGES = [
     glyph: 'infinity',
   },
   {
+    path: '/inside-a-planet',
+    section: 'potential',
+    spec: 'Extension',
+    specTitle: '',
+    title: 'Inside a planet',
+    short: 'Inside a planet',
+    summary:
+      'Inside a hollow shell the pulls cancel exactly, in pairs. Inside a solid planet only the mass closer to the centre pulls, so g falls to zero at the centre.',
+    glyph: 'inside',
+  },
+  {
     path: '/orbits',
     section: 'orbits',
     spec: '3.7.2.4',
@@ -168,7 +179,7 @@ export const SPEC_MAP = [
   { spec: '3.7.2.3', text: 'Work done moving a mass, ΔW = mΔV', pages: ['/equipotentials'] },
   { spec: '3.7.2.3', text: 'Equipotential surfaces; no work along them', pages: ['/equipotentials', '/potential-well'] },
   { spec: '3.7.2.3', text: 'V = −GM/⁠r, and why it is negative', pages: ['/from-infinity', '/gradient'] },
-  { spec: '3.7.2.3', text: 'Graphs of g and V against r', pages: ['/gradient', '/earth-moon'] },
+  { spec: '3.7.2.3', text: 'Graphs of g and V against r', pages: ['/gradient', '/earth-moon', '/inside-a-planet'] },
   { spec: '3.7.2.3', text: 'g = −ΔV/⁠Δr', pages: ['/gradient', '/potential-well', '/earth-moon'] },
   { spec: '3.7.2.3', text: 'ΔV from the area under a g–r graph', pages: ['/gradient'] },
   { spec: '3.7.2.4', text: 'Orbital speed and period against radius; T² ∝ r³', pages: ['/orbits'] },
