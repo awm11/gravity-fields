@@ -57,13 +57,23 @@ export function useCanvas(draw, deps = [], { animate = false } = {}) {
 
   useEffect(() => {
     if (!animate) return undefined;
+    // An animated canvas scrolled out of view stops painting, so it costs
+    // nothing while the reader is elsewhere on the page.
+    let onScreen = true;
+    const io = new IntersectionObserver(([entry]) => {
+      onScreen = entry.isIntersecting;
+    });
+    if (canvasRef.current) io.observe(canvasRef.current);
     let raf = 0;
     const loop = (t) => {
-      paintRef.current(t);
+      if (onScreen) paintRef.current(t);
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      io.disconnect();
+    };
   }, [animate]);
 
   return { canvasRef, sizeRef, repaint: () => paintRef.current() };

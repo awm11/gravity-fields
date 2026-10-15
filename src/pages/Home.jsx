@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Nw } from '../components/Eq.jsx';
 import { PAGES, SECTIONS, SPEC_MAP, pageByPath } from './registry.js';
 import { hrefFor } from '../lib/router.js';
-import { useCanvas, localPoint } from '../lib/useCanvas.js';
+import { useCanvas } from '../lib/useCanvas.js';
 import { contourSegments } from '../lib/contours.js';
 import { COLORS, arrow, body, chevron, stars } from '../lib/draw.js';
 import { prefersReducedMotion } from '../lib/physics.js';
@@ -19,13 +19,48 @@ import Glyph from '../components/Glyph.jsx';
 const EARTH_MASS = 1;
 const MOON_MASS = 0.2;
 
+// The field drawing (equipotentials and field lines) is costly, and the moon
+// moves only a pixel or so per tenth of a second, so it is redrawn into a
+// cached layer about ten times a second, and not at all while the page is
+// being scrolled. Every frame just copies that layer and adds the pointer's
+// arrow.
+const REFRESH_MS = 100;
+const SCROLL_QUIET_MS = 200;
+
 function HeroField() {
-  const probe = useRef(null);
+  const probe = useRef(null); // the pointer, in window (client) coordinates
+  const layer = useRef(null); // { canvas, w, h, dpr, t, bodies, field, unit }
+  const scrolledAt = useRef(-Infinity);
   const [hint, setHint] = useState(true);
   const still = prefersReducedMotion();
 
   const { canvasRef } = useCanvas(
-    (ctx, w, h, t) => {
+    (screen, w, h, t) => {
+      const dpr = screen.canvas.width / w;
+      let L = layer.current;
+      const stale =
+        !L || L.w !== w || L.h !== h || L.dpr !== dpr || (t - L.t > REFRESH_MS && t - scrolledAt.current > SCROLL_QUIET_MS);
+      if (stale) {
+        if (!L || L.w !== w || L.h !== h || L.dpr !== dpr) {
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(w * dpr);
+          canvas.height = Math.round(h * dpr);
+          L = { canvas, w, h, dpr };
+          layer.current = L;
+        }
+        const ctx = L.canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        Object.assign(L, drawScene(ctx, w, h, t), { t });
+      }
+      screen.drawImage(L.canvas, 0, 0, w, h);
+      drawProbe(screen, L);
+    },
+    [],
+    { animate: true },
+  );
+
+  // the field and the bodies, drawn into the cached layer
+  function drawScene(ctx, w, h, t) {
       const unit = Math.min(w, h * 1.6);
       const earth = { x: w * 0.64, y: h * 0.44, m: EARTH_MASS, r: unit * 0.045 };
       const orbit = unit * 0.3;
@@ -47,7 +82,9 @@ function HeroField() {
       const nx = Math.ceil(w / step) + 1;
       const ny = Math.ceil(h / step) + 1;
       const values = new Float32Array(nx * ny);
-      const skip = new Uint8Array(nx * ny);
+      // No samples are skipped near the bodies: skipping whole grid cells cut
+      // square notches out of the innermost rings. The bodies are drawn on top
+      // and hide whatever lies inside them.
       for (let j = 0; j < ny; j++) {
         for (let i = 0; i < nx; i++) {
           const x = i * step;
@@ -55,7 +92,6 @@ function HeroField() {
           let v = 0;
           for (const b of bodies) {
             const d = Math.hypot(x - b.x, y - b.y);
-            if (d < b.r * 1.05) skip[j * nx + i] = 1;
             v -= (b.m * unit) / Math.max(d, 1);
           }
           values[j * nx + i] = v;
@@ -66,7 +102,7 @@ function HeroField() {
       const dV = 1.05;
       const levels = [];
       for (let k = 1; k <= 22; k++) levels.push(-dV * k);
-      const segs = contourSegments(values, nx, ny, levels, skip);
+      const segs = contourSegments(values, nx, ny, levels);
       ctx.lineWidth = 1;
       segs.forEach((list, k) => {
         ctx.strokeStyle = `rgba(158,214,140,${0.55 - k * 0.012})`;
@@ -137,8 +173,14 @@ function HeroField() {
       body(ctx, earth.x, earth.y, earth.r, 'earth');
       body(ctx, moon.x, moon.y, moon.r, 'moon');
 
-      // the pull on a test mass at the pointer
-      const p = probe.current;
+      return { bodies, field, unit };
+  }
+
+  // the pull on a test mass at the pointer, drawn fresh every frame
+  function drawProbe(ctx, { bodies, field, unit }) {
+      const c = probe.current;
+      const rect = ctx.canvas.getBoundingClientRect();
+      const p = c && [c[0] - rect.left, c[1] - rect.top];
       if (p && !bodies.some((b) => Math.hypot(p[0] - b.x, p[1] - b.y) < b.r + 6)) {
         const [gx, gy] = field(p[0], p[1]);
         const g = Math.hypot(gx, gy);
@@ -152,13 +194,18 @@ function HeroField() {
         ctx.fillStyle = COLORS.text;
         ctx.fill();
       }
-    },
-    [],
-    { animate: true },
-  );
+  }
+
+  useEffect(() => {
+    const onScroll = () => {
+      scrolledAt.current = performance.now();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   const move = (e) => {
-    probe.current = localPoint(e, e.currentTarget);
+    probe.current = [e.clientX, e.clientY];
     if (hint) setHint(false);
   };
 
@@ -185,7 +232,7 @@ export default function Home() {
         <div className="hero-text">
           <h1>Gravitational fields</h1>
           <p>
-            Eleven interactive pages for AQA A-level Physics 3.7.2, from Newton&rsquo;s law to
+            Twelve interactive pages for AQA A-level Physics 3.7.2, from Newton&rsquo;s law to
             orbits, and the experiments that weighed the Earth.
           </p>
         </div>
